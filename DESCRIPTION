@@ -1,0 +1,20 @@
+Package: au.address.match
+Title: GeoCode Stuff
+Version: 0.0.0.1
+Authors@R: 
+    person(given = "Kyle",
+           family = "Haynes",
+           role = c("aut", "cre"),
+           email = "kyle@kylehaynes.com.au")
+Description: A set of convenience functions for reading G-NAF in to R.
+Depends: R (>= 3.4.0)
+Imports: data.table,
+         stringi,
+         stringdist
+License: use_mit_license()
+URL: https://github.com/KyleHaynes/au.address.match
+BugReports: https://github.com/KyleHaynes/au.address.match/issues
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
