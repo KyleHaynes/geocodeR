@@ -1,12 +1,12 @@
 Package: au.address.match
-Title: GeoCode Stuff
+Title: Matching addresses to G-NAF.
 Version: 0.0.0.1
 Authors@R: 
     person(given = "Kyle",
            family = "Haynes",
            role = c("aut", "cre"),
            email = "kyle@kylehaynes.com.au")
-Description: A set of convenience functions for reading G-NAF in to R.
+Description: Matching addresses to G-NAF.
 Depends: R (>= 3.4.0)
 Imports: data.table,
          stringi,
