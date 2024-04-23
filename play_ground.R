@@ -15,9 +15,10 @@ source("./R/winkler_funs.R")
 
 # devtools::document()
 
-lookup_map <- source_gnaf()
+system.time({lookup_map <- source_gnaf()})
 
 lookup_address(vec)
+lookup_address("30 RUATOKA COURT NARANGBA 4504")
 
 # lookup_map <- source_gnaf()
 x = lookup_address(d$a %sample% 10000)
@@ -95,7 +96,6 @@ x <- lookup_address(c(d$a))
 jwink
 
 
-d <- readRDS("Z:/Project/QGSO/Data Integration/QHF/QPF/frame updates/2024-01 frame creation/output/2024-01_di_qpf_master_frame.rds")
 
 
 
@@ -120,8 +120,7 @@ beyond_compare(
 
 view_excel(x[order(sum)][notes %nin% c("Correct address (no Lots)", "GNAF Address Label", NA), .(normalised_input, address_label, sum,  jarowinkler, jaccard_2_grams, short_address, short_normalised_input, sum_short, short_jarowinkler)])
 
-source("C:\\temp\\2024_address_matching.R")
-lookup_address(c("5-7 JUDITH STREET RUSSELL ISLAND 4184", "UNIT 8 24 ROGOONA STREET MORNINGSIDE 4170", "5 DAPSANG DRIVE TAMBORINE MT 4272"))
+
 
 vec <- c(
 "31A MAITLAND ROAD BURPENGARY EAST 4505",
@@ -133,7 +132,6 @@ vec <- c(
 "9 MC CANN STREET EDMONTON 4869"
 )
 x <- lookup_address(vec, deduplicate = T)
-x <- fread("Z:/Project/QGSO/Data Integration/QHF/Data (supplementary)/GNAF/G-NAF FEBRUARY 2022/Authority Code/Authority_Code_STREET_TYPE_AUT_psv.psv")
 
 tmp <- dput(data.frame(x))
 
@@ -159,7 +157,7 @@ vec <- c(
     , "79 URBAN ROAD ELIMBAH 4516"
 )
 x <- lookup_address(vec)
-
+View(x)
 
 # The following now all match.
 x <- lookup_address(c(
@@ -175,7 +173,6 @@ x <- lookup_address(c(
 # "HORN ISLAND 4875" --> "HORN 4875"
 # Does "WONGA 4873" exists? if not, should it be "WONGA BEACH"?
 
-q <- readRDS("Z:/Project/QGSO/Data Integration/QHF/QPF/frame updates/2024-01 frame creation/output/2024-01_scia_qpf_identified_sample_frame.rds")
 
 vec <- q[geocoded_accuracy != 1]$full_physical_address
 vec <- st(gsub("\\bQLD\\b|,", " ", vec))

@@ -36,13 +36,18 @@ lookup_address <- function(
     # ---- Creates blocks ----
     x_sub <- blocking_fun(x_sub, "normalised_input", not_gnaf = TRUE)[]
 
-    browser(print("heyyy"))
+    # browser()
 
-    b <- merge(x_sub[(!matched)], lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_3)], by = "block_3", all.x = TRUE, allow.cartesian = TRUE)
+    b1 <- merge(x_sub[(!matched)], lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_3)], by = "block_3", all.x = TRUE, allow.cartesian = TRUE)
+    b1[, jaccard_2_grams := round(stringdist::stringdist(normalised_input, address, method = "jaccard", q = 2), 3)]
+    b1[, jarowinkler := round(stringdist::stringdist(normalised_input, address, method = "jw"), 3)]
+    b1[, sum := jarowinkler + jaccard_2_grams]
+    b1[, matched := fifelse(sum <= .12, T, F)]
+
 
     # ---- Blocking: Hashes ----
     # Now block on address string, this should hopefully weed out a lot.
-    b <- merge(x_sub[(!matched)], lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_1)], by = "block_1", all.x = TRUE, allow.cartesian = TRUE)
+    b <- merge(x_sub[(!matched) & !row.num %in% b1[(matched)]$row.num], lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_1)], by = "block_1", all.x = TRUE, allow.cartesian = TRUE)
     # Identify those that didn't block on anything (these will be added back later).
     no_blocks <- b[is.na(address)]
     if(test){
@@ -59,14 +64,14 @@ lookup_address <- function(
     b <- b[!is.na(address)]
 
     # rbind them, and remove r2.
-    b <- rbind(b,b2)
+    b <- rbind(b, b2, b1[(!matched)][!row.num %in% b1[(matched)]$row.num], fill = T)
     rm(b2)
 
 
     # ---- String Similarities ----
-    b[, jaccard_2_grams := round(stringdist::stringdist(normalised_input, address, method = "jaccard", q = 2), 3)]
+    b[is.na(jaccard_2_grams), jaccard_2_grams := round(stringdist::stringdist(normalised_input, address, method = "jaccard", q = 2), 3)]
     b[, jaccard_1_grams := round(stringdist::stringdist(normalised_input, address, method = "jaccard", q = T), 3)]
-    b[, jarowinkler := round(stringdist::stringdist(normalised_input, address, method = "jw"), 3)]
+    b[is.na(jarowinkler), jarowinkler := round(stringdist::stringdist(normalised_input, address, method = "jw"), 3)]
     # Match if threshold achieved.
     b[, sum := jarowinkler + jaccard_2_grams]
     
@@ -79,12 +84,12 @@ lookup_address <- function(
     vec <- unique(block_2$row.num)
     b <- b[!row.num %in% vec]
 
-
     # Within groups, identify weaker members.
     b[!is.na(address_detail_pid), drop := {
         jaccard_2_grams > min(jaccard_2_grams) + .07 &
         jarowinkler > min(jarowinkler) + .07 &
-        sum > min(sum) + .13
+        sum > min(sum) + .13 &
+        short_address != short_normalised_input
     }, by = "row.num"]
     # Drop them.
     b <- b[drop != TRUE]
@@ -100,7 +105,7 @@ lookup_address <- function(
     }
 
     # Identify those that are terrible and remove.
-    b[l <<- !(matched) & jarowinkler > .2 & jaccard_2_grams > .4 & sum > .660]
+    b[l <<- !(matched) & jarowinkler > .2 & jaccard_2_grams > .4 & sum > .660 & short_address != short_normalised_input]
     if(test){
         message("dataset: `all_should_not_match` has been created, these should all be false positives.")
         all_should_not_match <<- b[(l)]
@@ -167,7 +172,8 @@ lookup_address <- function(
 
     # ---- Deduplicate ----
     b[is.na(short_jarowinkler), short_jarowinkler := jarowinkler]
-    b <- b[order(sum_short)]
+    # b <- b[order(match, sum_short)]
+    setorderv(b, c("matched", "sum_short"), c(-1, 1))
     
     # b[row.num %in% b[duplicated(row.num)]$row.num, {.SD; browser()}, row.num]
 
@@ -176,7 +182,7 @@ lookup_address <- function(
     }
 
     # b[, row.num := NULL]
-    b <- rbind(block_1, block_2, b, no_blocks, fill = TRUE)
+    b <- rbind(block_1, b1[(matched)], block_2, b, no_blocks, fill = TRUE)
     
     # Hrmmm I don't think this dedupe is required...?
     if(deduplicate) {
