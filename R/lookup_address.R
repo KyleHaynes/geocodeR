@@ -9,7 +9,6 @@ lookup_address <- function(
     x[, matched := FALSE]
     x[, normalised_input := normalise_fun(input, not_gnaf = TRUE)]
 
-
     # ---- Blocking: Address ----
     # First block on address string, this should hopefully weed out a lot.
     block_1 <- merge(x, lookup_map[, .(address_detail_pid, address_label, address, notes)], by.x = "input", by.y = "address", all.x = FALSE)
@@ -227,6 +226,12 @@ lookup_address <- function(
         x[l & grepl(names(false_pos)[i], tmp, perl = TRUE) & grepl((false_pos)[i], tmp, perl = TRUE), matched := FALSE]
         if(verbose) print(x[l & grepl(names(false_pos)[i], tmp, perl = TRUE) & grepl((false_pos)[i], tmp, perl = TRUE), .(normalised_input, address)])
     }
+
+    suppressWarnings(set(x, i = NULL, j = c("row.num", "block_1", "block_3", "block_2", "short_address", "jw_split", "string_match", "tmp"),  value = NULL))
+    setcolorder(x, c("input", "normalised_input", "matched", "match_type"))
+    setnames(x, c("notes"),
+                c("match_type"))
+
 
     return(x[])
 }

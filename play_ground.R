@@ -15,10 +15,11 @@ source("./R/winkler_funs.R")
 
 # devtools::document()
 
-system.time({lookup_map <- source_gnaf()})
+# system.time({lookup_map <- source_gnaf()})
 
-lookup_address(vec)
-lookup_address("30 RUATOKA COURT NARANGBA 4504")
+# lookup_address(vec)
+d = lookup_address(c("30 RUATOKA COURT NARANGBA 4504", "30 RUUATOKA COURT NARANGBA 4504"))
+d
 
 # lookup_map <- source_gnaf()
 x = lookup_address(d$a %sample% 10000)
