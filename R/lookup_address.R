@@ -11,7 +11,7 @@ lookup_address <- function(
 
     # ---- Blocking: Address ----
     # First block on address string, this should hopefully weed out a lot.
-    block_1 <- merge(x, lookup_map[, .(address_detail_pid, address_label, address, notes)], by.x = "input", by.y = "address", all.x = FALSE)
+    block_1 <- merge(x, lookup_map[, .(address_detail_pid, address_label, address, notes, longitude, latitude)], by.x = "input", by.y = "address", all.x = FALSE)
     # As the threshold has been met, remove from x
     vec <- block_1$normalised_input
     x[normalised_input %chin% vec, matched := TRUE]
@@ -37,7 +37,7 @@ lookup_address <- function(
 
     # browser()
 
-    b1 <- merge(x_sub[(!matched)], lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_3)], by = "block_3", all.x = TRUE, allow.cartesian = TRUE)
+    b1 <- merge(x_sub[(!matched)], lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_3, longitude, latitude)], by = "block_3", all.x = TRUE, allow.cartesian = TRUE)
     b1[, jaccard_2_grams := round(stringdist::stringdist(normalised_input, address, method = "jaccard", q = 2), 3)]
     b1[, jarowinkler := round(stringdist::stringdist(normalised_input, address, method = "jw"), 3)]
     b1[, sum := jarowinkler + jaccard_2_grams]
@@ -46,7 +46,7 @@ lookup_address <- function(
 
     # ---- Blocking: Hashes ----
     # Now block on address string, this should hopefully weed out a lot.
-    b <- merge(x_sub[(!matched) & !row.num %in% b1[(matched)]$row.num], lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_1)], by = "block_1", all.x = TRUE, allow.cartesian = TRUE)
+    b <- merge(x_sub[(!matched) & !row.num %in% b1[(matched)]$row.num], lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_1, longitude, latitude)], by = "block_1", all.x = TRUE, allow.cartesian = TRUE)
     # Identify those that didn't block on anything (these will be added back later).
     no_blocks <- b[is.na(address)]
     if(test){
@@ -55,7 +55,7 @@ lookup_address <- function(
     }
 
     # Second round of blocking
-    b2 <- merge(x_sub[row.num %in% no_blocks$row.num], lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_2)], by = "block_2", all.x = TRUE, allow.cartesian=TRUE)
+    b2 <- merge(x_sub[row.num %in% no_blocks$row.num], lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_2, longitude, latitude)], by = "block_2", all.x = TRUE, allow.cartesian=TRUE)
     b2 <- b2[!is.na(address), ]
 
 

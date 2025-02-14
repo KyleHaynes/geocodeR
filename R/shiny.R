@@ -7,7 +7,14 @@ library(writexl)
 library(diffobj)
 library(leaflet)
 
-preloaded_data <- data.frame(ID = 1:10, Value = letters[1:10], Num1 = rnorm(10, 50, 10), Num2 = rnorm(10, 100, 20))
+preloaded_data <- data.frame(
+  ID = 1:10, 
+  Value = letters[1:10], 
+  Num1 = rnorm(10, 50, 10), 
+  Num2 = rnorm(10, 100, 20),
+  latitude = runif(10, -37, -35),   # Random latitudes (Australia example)
+  longitude = runif(10, 144, 146)   # Random longitudes
+)
 
 ui <- page_sidebar(
   title = "geocodeR",
@@ -43,6 +50,8 @@ ui <- page_sidebar(
     div(style = "width: 100%; overflow-x: auto; max-width: 100%;",
         DTOutput("filtered_table")
     ),
+    h3("Selected Locations Map"),
+    leafletOutput("map", height = "500px"),
     h3("Column Differences"),
     uiOutput("diff_output")
   )
@@ -70,7 +79,12 @@ server <- function(input, output, session) {
   merged_data <- eventReactive(input$merge_btn, {
     req(data(), input$merge_var)
     merge_col <- input$merge_var
-    df <- lookup_address(as.character(data()[[merge_col]]))
+    df <- lookup_address(as.character(toupper(data()[[merge_col]])))
+    
+    # # Ensure lat/lon are included
+    # df$latitude <- runif(nrow(df), -37, -35)
+    # df$longitude <- runif(nrow(df), 144, 146)
+
     updateSelectInput(session, "diff_col1", choices = names(df))
     updateSelectInput(session, "diff_col2", choices = names(df))
     df
@@ -101,7 +115,9 @@ server <- function(input, output, session) {
   
   output$filtered_table <- renderDT({
     req(filtered_data())
-    datatable(filtered_data(), options = list(pageLength = 10, autoWidth = TRUE))
+    datatable(filtered_data(), 
+              options = list(pageLength = 10, autoWidth = TRUE), 
+              selection = "multiple")  # Allow row selection
   })
   
   observeEvent(input$show_diff, {
@@ -128,6 +144,32 @@ server <- function(input, output, session) {
       write.csv(filtered_data(), file, row.names = FALSE)
     }
   )
+
+  # **Map Rendering**  
+  observe({
+    req(filtered_data())
+    selected_rows <- input$filtered_table_rows_selected  # Get selected row indices
+    df <- filtered_data()
+
+    if (length(selected_rows) > 0) {
+      selected_data <- df[selected_rows, ]
+      
+      output$map <- renderLeaflet({
+        leaflet(selected_data) %>%
+          addTiles() %>%
+          addCircleMarkers(
+            ~longitude, ~latitude, 
+            radius = 5, color = "blue", fillOpacity = 0.7
+            # , popup = ~paste0("ID: ", ID, "<br>Value: ", Value)
+          )
+      })
+    } else {
+      output$map <- renderLeaflet({
+        leaflet() %>%
+          addTiles()  # Empty map
+      })
+    }
+  })
 }
 
 shinyApp(ui, server)
