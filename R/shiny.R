@@ -46,14 +46,19 @@ ui <- page_sidebar(
     )
   ),
   mainPanel(
-    h3("Merged Data Table"),
-    div(style = "width: 100%; overflow-x: auto; max-width: 100%;",
-        DTOutput("filtered_table")
-    ),
-    h3("Selected Locations Map"),
-    leafletOutput("map", height = "500px"),
-    h3("Column Differences"),
-    uiOutput("diff_output")
+    accordion(
+      id = "main_sections",
+      accordion_panel("Merged Data Table",
+        div(style = "width: 100%; overflow-x: auto; max-width: 100%;",
+            DTOutput("filtered_table"))
+      ),
+      accordion_panel("Selected Locations Map",
+        leafletOutput("map", height = "500px")
+      ),
+      accordion_panel("Column Differences",
+        uiOutput("diff_output")
+      )
+    )
   )
 )
 
@@ -81,10 +86,6 @@ server <- function(input, output, session) {
     merge_col <- input$merge_var
     df <- lookup_address(as.character(toupper(data()[[merge_col]])))
     
-    # # Ensure lat/lon are included
-    # df$latitude <- runif(nrow(df), -37, -35)
-    # df$longitude <- runif(nrow(df), 144, 146)
-
     updateSelectInput(session, "diff_col1", choices = names(df))
     updateSelectInput(session, "diff_col2", choices = names(df))
     df
