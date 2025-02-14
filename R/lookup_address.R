@@ -104,7 +104,7 @@ lookup_address <- function(
     }
 
     # Identify those that are terrible and remove.
-    b[l <<- !(matched) & jarowinkler > .2 & jaccard_2_grams > .4 & sum > .660 & short_address != short_normalised_input]
+    b[l <<- !(matched) & jarowinkler > .2 & jaccard_2_grams > .4 & sum > .520 & short_address != short_normalised_input]
     if(test){
         message("dataset: `all_should_not_match` has been created, these should all be false positives.")
         all_should_not_match <<- b[(l)]
@@ -228,9 +228,9 @@ lookup_address <- function(
     }
 
     suppressWarnings(set(x, i = NULL, j = c("row.num", "block_1", "block_3", "block_2", "short_address", "jw_split", "string_match", "tmp"),  value = NULL))
-    setcolorder(x, c("input", "normalised_input", "matched", "match_type"))
     setnames(x, c("notes"),
                 c("match_type"))
+    setcolorder(x, c("input", "normalised_input", "matched", "match_type"))
 
 
     return(x[])

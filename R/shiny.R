@@ -64,6 +64,7 @@ server <- function(input, output, session) {
   merged_data <- eventReactive(input$merge_btn, {
     req(data(), input$merge_var)
     merge_col <- input$merge_var
+    browser()
     df <- lookup_address(data())
     updateSelectInput(session, "diff_col1", choices = names(df))
     updateSelectInput(session, "diff_col2", choices = names(df))

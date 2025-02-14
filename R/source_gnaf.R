@@ -46,7 +46,7 @@ source_gnaf <- function(
 
     set(g, i = NULL, j = c("date_created", "legal_parcel_id",
     "mb_code", "alias_principal", "principal_pid", "primary_secondary",
-    "primary_pid", "geocode_type", "longitude", "latitude"), value = NULL)
+    "primary_pid", "geocode_type"), value = NULL)
 
     # Remove state from the label.
     g[, address_label := gsub("\\w+ (\\d+)$", "\\1", address_label, perl = TRUE)]
