@@ -46,7 +46,7 @@ source_gnaf <- function(
 
     set(g, i = NULL, j = c("date_created", "legal_parcel_id",
     "mb_code", "alias_principal", "principal_pid", "primary_secondary",
-    "primary_pid", "geocode_type"), value = NULL)
+    "primary_pid"), value = NULL)
 
     # Remove state from the label.
     g[, address_label := gsub("\\w+ (\\d+)$", "\\1", address_label, perl = TRUE)]
@@ -209,6 +209,9 @@ source_gnaf <- function(
         address_label = g$address_label[!lots_only],
         address = g$v1[!lots_only],
         notes = g$v1_notes[!lots_only],
+        geocode_type = g$geocode_type[!lots_only],
+        longitude = g$longitude[!lots_only],
+        latitude = g$latitude[!lots_only],
         keep.rownames = FALSE
     )
 
@@ -218,6 +221,9 @@ source_gnaf <- function(
             address_detail_pid = g$address_detail_pid,
             address_label = g$address_label,
             address = g$address_label,
+            geocode_type = g$geocode_type,
+            longitude = g$longitude,
+            latitude = g$latitude,
             notes = "GNAF Address Label",
             keep.rownames = FALSE
         ),
@@ -225,6 +231,9 @@ source_gnaf <- function(
             address_detail_pid = g$address_detail_pid[lots_only],
             address_label = g$address_label[lots_only],
             address = g$v2[lots_only],
+            geocode_type = g$geocode_type[lots_only],
+            longitude = g$longitude[lots_only],
+            latitude = g$latitude[lots_only],
             notes = g$v2_notes[lots_only],
             keep.rownames = FALSE
         ),
@@ -232,6 +241,9 @@ source_gnaf <- function(
             address_detail_pid = g$address_detail_pid[ranged],
             address_label = g$address_label[ranged],
             address = g$v3[ranged],
+            geocode_type = g$geocode_type[ranged],
+            longitude = g$longitude[ranged],
+            latitude = g$latitude[ranged],
             notes = g$v3_notes[ranged],
             keep.rownames = FALSE
         ),
@@ -239,6 +251,9 @@ source_gnaf <- function(
             address_detail_pid = g$address_detail_pid[ranged],
             address_label = g$address_label[ranged],
             address = g$v4[ranged],
+            geocode_type = g$geocode_type[ranged],
+            longitude = g$longitude[ranged],
+            latitude = g$latitude[ranged],
             notes = g$v4_notes[ranged],
             keep.rownames = FALSE
         )

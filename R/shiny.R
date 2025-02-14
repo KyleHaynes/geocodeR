@@ -1,44 +1,50 @@
 library(shiny)
-library(shinythemes)
+library(bslib)
 library(readxl)
 library(DT)
-library(dplyr)
+library(data.table)
 library(writexl)
-library(diffobj)  # Use diffobj for diffing columns
+library(diffobj)
+library(leaflet)
 
-# Preloaded dataset (replace with actual data)
 preloaded_data <- data.frame(ID = 1:10, Value = letters[1:10], Num1 = rnorm(10, 50, 10), Num2 = rnorm(10, 100, 20))
 
-ui <- fluidPage(
-  theme = shinytheme("flatly"),
-  titlePanel("CSV/XLSX Merger", windowTitle = "Data Merger"),
-  sidebarLayout(
-    sidebarPanel(
-      fileInput("file", "Upload CSV/XLSX File", accept = c(".csv", ".xlsx"),
-                buttonLabel = "Browse...", placeholder = "No file selected"),
-      uiOutput("var_select"),
-      actionButton("merge_btn", "Merge Data", class = "btn btn-primary"),
-      hr(),
-      uiOutput("filter1"),
-      selectInput("operator1", "Operator for First Filter", choices = c("<", "<=", ">", ">=")),
-      numericInput("filter_value1", "Value for First Filter", value = NA, min = NA, max = NA),
-      uiOutput("filter2"),
-      selectInput("operator2", "Operator for Second Filter", choices = c("<", "<=", ">", ">=")),
-      numericInput("filter_value2", "Value for Second Filter", value = NA, min = NA, max = NA),
-      hr(),
-      selectInput("diff_col1", "Select First Column for Diff", choices = NULL),
-      selectInput("diff_col2", "Select Second Column for Diff", choices = NULL),
-      actionButton("show_diff", "Show Differences", class = "btn btn-warning"),
-      downloadButton("download", "Download Filtered Data", class = "btn btn-success")
-    ),
-    mainPanel(
-      h3("Merged Data Table"),
-      div(style = "width: 100%; overflow-x: auto; max-width: 100%;",
-          DTOutput("filtered_table")
+ui <- page_sidebar(
+  title = "geocodeR",
+  sidebar = sidebar(
+    accordion(
+      id = "sidebar_sections",
+      accordion_panel("Upload & Merge",
+        fileInput("file", "Upload CSV/XLSX File", accept = c(".csv", ".xlsx"),
+                  buttonLabel = "Browse...", placeholder = "No file selected"),
+        uiOutput("var_select"),
+        actionButton("merge_btn", "Merge Data", class = "btn btn-primary")
       ),
-      h3("Column Differences"),
-      uiOutput("diff_output")
+      accordion_panel("Filters",
+        uiOutput("filter1"),
+        selectInput("operator1", "Operator for First Filter", choices = c("<", "<=", ">", ">=")),
+        numericInput("filter_value1", "Value for First Filter", value = NA, min = NA, max = NA),
+        uiOutput("filter2"),
+        selectInput("operator2", "Operator for Second Filter", choices = c("<", "<=", ">", ">=")),
+        numericInput("filter_value2", "Value for Second Filter", value = NA, min = NA, max = NA)
+      ),
+      accordion_panel("Column Differences",
+        selectInput("diff_col1", "Select First Column for Diff", choices = NULL),
+        selectInput("diff_col2", "Select Second Column for Diff", choices = NULL),
+        actionButton("show_diff", "Show Differences", class = "btn btn-warning")
+      ),
+      accordion_panel("Download",
+        downloadButton("download", "Download Filtered Data", class = "btn btn-success")
+      )
     )
+  ),
+  mainPanel(
+    h3("Merged Data Table"),
+    div(style = "width: 100%; overflow-x: auto; max-width: 100%;",
+        DTOutput("filtered_table")
+    ),
+    h3("Column Differences"),
+    uiOutput("diff_output")
   )
 )
 
@@ -47,9 +53,9 @@ server <- function(input, output, session) {
     req(input$file)
     ext <- tools::file_ext(input$file$name)
     if (ext == "csv") {
-      read.csv(input$file$datapath)
+      fread(input$file$datapath)
     } else if (ext == "xlsx") {
-      read_excel(input$file$datapath)
+      data.table(read_excel(input$file$datapath))
     } else {
       NULL
     }
@@ -64,8 +70,7 @@ server <- function(input, output, session) {
   merged_data <- eventReactive(input$merge_btn, {
     req(data(), input$merge_var)
     merge_col <- input$merge_var
-    browser()
-    df <- lookup_address(data())
+    df <- lookup_address(as.character(data()[[merge_col]]))
     updateSelectInput(session, "diff_col1", choices = names(df))
     updateSelectInput(session, "diff_col2", choices = names(df))
     df
@@ -73,14 +78,12 @@ server <- function(input, output, session) {
   
   output$filter1 <- renderUI({
     req(merged_data())
-    selectInput("filter_var1", "Select First Filter Column", choices = names(merged_data()),
-                selected = NULL)
+    selectInput("filter_var1", "Select First Filter Column", choices = names(merged_data()))
   })
   
   output$filter2 <- renderUI({
     req(merged_data())
-    selectInput("filter_var2", "Select Second Filter Column", choices = names(merged_data()),
-                selected = NULL)
+    selectInput("filter_var2", "Select Second Filter Column", choices = names(merged_data()))
   })
   
   filtered_data <- reactive({
@@ -107,11 +110,9 @@ server <- function(input, output, session) {
       df <- filtered_data()
       
       if (input$diff_col1 %in% names(df) && input$diff_col2 %in% names(df)) {
-        # Use diffobj to show differences between the selected columns
         diffs <- diffChr(as.character(df[[input$diff_col1]]),
                          as.character(df[[input$diff_col2]]))
         
-        # Render the diff as HTML
         HTML(paste0("<pre style='background-color:#f8f9fa;padding:10px;border-radius:5px;'>", diffs, "</pre>"))
       } else {
         "Please select valid columns to compare."
