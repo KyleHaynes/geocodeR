@@ -10,7 +10,14 @@ Description: Matching addresses to G-NAF.
 Depends: R (>= 3.4.0)
 Imports: data.table,
          stringi,
-         stringdist
+         stringdist,
+         shiny,
+         shinythemes,
+         readxl,
+         DT,
+         writexl,
+         diffobj,
+         leaflet
 License: use_mit_license()
 URL: https://github.com/KyleHaynes/au.address.match
 BugReports: https://github.com/KyleHaynes/au.address.match/issues
