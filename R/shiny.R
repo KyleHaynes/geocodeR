@@ -32,7 +32,6 @@ geocodeR <- function(){
     # Define UI
     ui <- fillPage(
     tags$head(
-        # Adding custom CSS for .col-sm-8 class
         tags$style(HTML("
         @media (min-width: 576px) {
             .col-sm-8 {
@@ -43,7 +42,7 @@ geocodeR <- function(){
         }
 
         table.dataTable {
-            font-size: 10px !important;
+            font-size: 11px !important;
         }
         "))
     ),
@@ -56,7 +55,9 @@ geocodeR <- function(){
             fileInput("file", "Upload CSV/XLSX File", accept = c(".csv", ".xlsx"),
             buttonLabel = "Browse...", placeholder = "No file selected"),
             uiOutput("var_select"),
-            actionButton("merge_btn", "Geocode", class = "btn btn-primary")
+            actionButton("merge_btn", "Geocode", class = "btn btn-primary"),
+            tags$div(id = "upload_progress", style = "display: none;", class = "progress",
+                tags$div(class = "progress-bar", role = "progressbar", style = "width: 0%;"))
             ),
             accordion_panel("\ud83d\udcc4 Upload Shapefile",
             fileInput("shapefile", "Upload Shapefile", 
@@ -74,8 +75,10 @@ geocodeR <- function(){
             uiOutput("filter2"),
             selectInput("operator2", "Operator for Second Filter", choices = c("<", "<=", ">", ">=", "==", "%plike%")),
             textInput("filter_value2", "Value for Second Filter", value = NA),
+            actionButton("reset_btn", "Reset Filters", class = "btn btn-secondary")
             ),
             accordion_panel("\ud83d\udce9 Download",
+            selectInput("download_format", "Select Download Format", choices = c("CSV", "XLS", "RDS")),
             downloadButton("download", "Download Filtered Data", class = "btn btn-success")
             ),
             accordion_panel("📃Beyond Compare",
@@ -108,6 +111,9 @@ geocodeR <- function(){
                     div(style = "width: 48%;", echarts4rOutput("match_type_summary"))
                 )
             )
+            # accordion_panel("Summary Table", width = "100%",
+            #     div(DTOutput("summary_table"))
+            # )
             )
             )
         )
@@ -127,6 +133,14 @@ geocodeR <- function(){
         } else {
         NULL
         }
+    })
+
+    # Show progress bar during file upload
+    observeEvent(input$file, {
+        shinyjs::show("upload_progress")
+        shinyjs::runjs('$("#upload_progress .progress-bar").css("width", "0%");')
+        shinyjs::runjs('$("#upload_progress .progress-bar").animate({width: "100%"}, 1000);')
+        shinyjs::hide("upload_progress", anim = TRUE, animType = "fade", time = 1)
     })
 
     # Render uploaded data table with horizontal scroll
@@ -216,13 +230,37 @@ geocodeR <- function(){
         ), selection = "multiple")  
     })
 
+    # Render summary table
+    output$summary_table <- renderDT({
+        req(filtered_data_dynamic())
+        summary_data <- filtered_data_dynamic()[, .(
+            Count = .N,
+            Matched = sum(matched, na.rm = TRUE),
+            Unmatched = .N - sum(matched, na.rm = TRUE)
+        )]
+        datatable(summary_data, options = list(
+            pageLength = 5,
+            autoWidth = TRUE
+        ))
+    })
+
     # Download filtered data (including subregion column)
     output$download <- downloadHandler(
         filename = function() {
-        paste("filtered_data", Sys.Date(), ".csv", sep = "")
+            format <- input$download_format
+            ext <- switch(format,
+                          "CSV" = ".csv",
+                          "XLS" = ".xlsx",
+                          "RDS" = ".rds")
+            paste("filtered_data", Sys.Date(), ext, sep = "")
         },
         content = function(file) {
-        write.csv(filtered_data_dynamic(), file, row.names = FALSE)
+            format <- input$download_format
+            data <- filtered_data_dynamic()
+            switch(format,
+                   "CSV" = write.csv(data, file, row.names = FALSE),
+                   "XLS" = writexl::write_xlsx(data, file),
+                   "RDS" = saveRDS(data, file))
         }
     )
 
@@ -382,6 +420,14 @@ geocodeR <- function(){
         df <- filtered_data()
         selected_data <- df[, .SD, .SDcols = c(input$compare_var1, input$compare_var2)]
         print(selected_data)  # Print the selected data to the console
+    })
+
+    # Observe "Reset Filters" button click
+    observeEvent(input$reset_btn, {
+        updateTextInput(session, "filter_value1", value = NA)
+        updateTextInput(session, "filter_value2", value = NA)
+        updateSelectInput(session, "operator1", selected = "<")
+        updateSelectInput(session, "operator2", selected = "<")
     })
     }
 
