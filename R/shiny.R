@@ -1,7 +1,8 @@
 #' Input data
 #'
-#' @description
-#' Output data to *.RDS objects.
+#' @name geocodeR
+
+#' @description Output data to *.RDS objects.
 
 #' @param path Folder path of where the data will be output.
 #' 
