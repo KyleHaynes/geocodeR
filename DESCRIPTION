@@ -17,7 +17,8 @@ Imports: data.table,
          DT,
          writexl,
          diffobj,
-         leaflet
+         leaflet,
+         plotlyr
 License: use_mit_license()
 URL: https://github.com/KyleHaynes/au.address.match
 BugReports: https://github.com/KyleHaynes/au.address.match/issues
