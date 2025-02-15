@@ -326,7 +326,6 @@ geocodeR <- function(){
     output$matched_summary <- renderEcharts4r({
         req(filtered_data())
         df <- filtered_data()
-        browser()
         per <- round(((sum(df$matched) / nrow(df)) * 100), 2)
         e_charts() |> 
         e_gauge(per, "PERCENT") |> 
