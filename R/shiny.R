@@ -14,7 +14,7 @@
 #' @import data.table, shiny, bslib, readxl, DT, writexl, diffobj, leaflet, echarts4r, dplyr, sf, bslib, shinyjs
 
 #' @export
-options(shiny.maxRequestSize=1E10) 
+options(shiny.maxRequestSize=1E10)
 library(shiny)
 library(shinyjs)
 library(data.table)
@@ -102,10 +102,11 @@ geocodeR <- function(){
             ),
             accordion_panel("Geocode Summary Statistics", width = "100%",
                 collapsed = TRUE,
-                div(
-                echarts4rOutput("matched_summary"),
-                echarts4rOutput("match_type_summary"))
+                div(style = "display: flex; justify-content: space-between;",
+                    div(style = "width: 48%;", echarts4rOutput("matched_summary")),
+                    div(style = "width: 48%;", echarts4rOutput("match_type_summary"))
                 )
+            )
             )
             )
         )
@@ -369,5 +370,14 @@ geocodeR <- function(){
     })
     }
 
-    shinyApp(ui, server)
+    if(file.exists( "C:/Program Files/Mozilla Firefox/firefox.exe")){
+        options(browser = "C:/Program Files/Mozilla Firefox/firefox.exe")
+        shinyApp(ui, server)
+    } else if(file.exists("C:/Program Files/Internet Explorer/iexplore.exe")) {
+        options(browser = "C:/Program Files/Internet Explorer/iexplore.exe")
+        shinyApp(ui, server)
+    } else {
+         shinyApp(ui, server)
+    }
+   
 }
