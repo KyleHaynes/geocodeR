@@ -24,16 +24,6 @@ library(sf)
 library(dplyr)
 library(echarts4r)
 
-library(shiny)
-library(shinythemes)
-library(DT)
-library(data.table)
-library(readxl)
-library(leaflet)
-library(sf)
-library(dplyr)
-library(echarts4r)
-
 geocodeR <- function() {
   ui <- fillPage(
     tags$head(
@@ -108,6 +98,7 @@ geocodeR <- function() {
         )
       )
     )
+  
 
   server <- function(input, output, session) {
     # Reactive to load uploaded data
@@ -137,7 +128,7 @@ geocodeR <- function() {
     output$var_select <- renderUI({
       req(data())
       selectInput("merge_var", "Select Variable to Geocode", choices = names(data()),
-        selectize = TRUE, multiple = FALSE, selected = "address")
+        selectize = TRUE, multiple = FALSE, selected = "address" )
     })
 
     # Geocode data
@@ -148,11 +139,13 @@ geocodeR <- function() {
       df
     })
 
-    # Filter geocoded data
-    filtered_data <- reactive({
+    # Reactive value to store filtered data (including subregion column)
+    filtered_data <- reactiveVal(NULL)
+
+    # Observe changes in merged_data and update filtered_data
+    observe({
       req(merged_data())
-      df <- merged_data()
-      df
+      filtered_data(merged_data())
     })
 
     # Render filtered data table with horizontal scroll
@@ -214,7 +207,7 @@ geocodeR <- function() {
     output$polygon_column_select <- renderUI({
       req(shapefile_data())
       shapefile <- shapefile_data()
-      selectInput("polygon_column", "Select Polygon Column", 
+      selectInput("polygon_column", "Select Polygon/Geometry Variable", 
         choices = names(shapefile),  # Dynamically generate choices from shapefile columns
         selected = "geometry"  # Default selection (replace with your column name)
       )
@@ -224,7 +217,7 @@ geocodeR <- function() {
     output$subregion_column_select <- renderUI({
       req(shapefile_data())
       shapefile <- shapefile_data()
-      selectInput("subregion_column", "Select Subregion Column", 
+      selectInput("subregion_column", "Select Label Variable", 
         choices = names(shapefile),  # Dynamically generate choices from shapefile columns
         selected = "SA2_NAME21"  # Default selection (replace with your column name)
       )
@@ -249,9 +242,11 @@ geocodeR <- function() {
         st_drop_geometry()  # Convert to a regular data frame
 
       # Update filtered_data with the subregion column
-      filtered_data_with_subregion <- filtered_data() %>%
+      filtered_data_with_subregion <- geocoded_data %>%
         left_join(allocated_df %>% select(matched, !!sym(subregion_column)), by = "matched")
 
+      # Update the reactive value
+      filtered_data(filtered_data_with_subregion)
       # Count allocations per subregion
       allocation_counts <- allocated_df %>%
         count(!!sym(subregion_column))  # Use selected subregion column
@@ -275,9 +270,6 @@ geocodeR <- function() {
             label = ~paste("Subregion:", data.table(shapefile)[[subregion_column]], "Count:", n)  # Use selected subregion column
           )
       })
-
-      # Update filtered_data with the subregion column
-      filtered_data(filtered_data_with_subregion)
     })
 
     # Render geocode summary statistics
@@ -314,3 +306,4 @@ geocodeR <- function() {
 
   shinyApp(ui, server)
 }
+
