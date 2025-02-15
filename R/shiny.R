@@ -69,11 +69,11 @@ geocodeR <- function(){
             ),
             accordion_panel("\ud83e\uddf0 Filters",
             uiOutput("filter1"),
-            selectInput("operator1", "Operator for First Filter", choices = c("<", "<=", ">", ">=")),
-            numericInput("filter_value1", "Value for First Filter", value = NA, min = NA, max = NA),
+            selectInput("operator1", "Operator for First Filter", choices = c("<", "<=", ">", ">=", "==", "%plike%")),
+            textInput("filter_value1", "Value for First Filter", value = NA),
             uiOutput("filter2"),
-            selectInput("operator2", "Operator for Second Filter", choices = c("<", "<=", ">", ">=")),
-            numericInput("filter_value2", "Value for Second Filter", value = NA, min = NA, max = NA)
+            selectInput("operator2", "Operator for Second Filter", choices = c("<", "<=", ">", ">=", "==", "%plike%")),
+            textInput("filter_value2", "Value for Second Filter", value = NA),
             ),
             accordion_panel("\ud83d\udce9 Download",
             downloadButton("download", "Download Filtered Data", class = "btn btn-success")
@@ -168,25 +168,39 @@ geocodeR <- function(){
     filtered_data_dynamic <- reactive({
         req(filtered_data())
         df <- filtered_data()
-
+    # browser()
         # Apply first filter
-        if (!is.na(input$filter_value1)) {
+        if (!is.na(input$filter_value1) && !input$filter_value1 == "") {
             operator <- input$operator1
             value <- input$filter_value1
             filter_var <- input$filter1
-
-            filter_expr <- parse(text = paste0(filter_var, operator, value))
-            df <- df[eval(filter_expr)]
+            if(operator %in% c("%plike%")){
+                value <- paste0("'", value, "'")
+            }
+            filter_expr <- parse(text = paste(filter_var, operator, value))
+            test <- try(df[eval(filter_expr)], silent = TRUE)
+            if(class(test)[1] == "try-error"){
+                df <- df
+            } else {
+                df <- test
+            }
         }
 
         # Apply second filter
-        if (!is.na(input$filter_value2)) {
+        if (!is.na(input$filter_value2) && !input$filter_value2 == "") {
             operator <- input$operator2
             value <- input$filter_value2
             filter_var <- input$filter2
-
-            filter_expr <- parse(text = paste0(filter_var, operator, value))
-            df <- df[eval(filter_expr)]
+            if(operator %in% c("%plike%")){
+                value <- paste0("'", value, "'")
+            }
+            filter_expr <- parse(text = paste(filter_var, operator, value))
+            test <- try(df[eval(filter_expr)], silent = TRUE)
+            if(class(test)[1] == "try-error"){
+                df <- df
+            } else {
+                df <- test
+            }
         }
 
         df  # Return the filtered data
