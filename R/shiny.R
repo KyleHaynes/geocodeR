@@ -133,8 +133,7 @@ geocodeR <- function(){
         datatable(data(), options = list(
         pageLength = 10,
         scrollX = TRUE,  # Enable horizontal scrolling
-        autoWidth = FALSE
-        ), selection = "none")  
+        autoWidth = FALSE), selection = "none") 
     })
 
     # Render variable selection dropdown
@@ -170,36 +169,22 @@ geocodeR <- function(){
 
         # Apply first filter
         if (!is.na(input$filter_value1)) {
-        operator <- input$operator1
-        value <- input$filter_value1
-        filter_var <- input$filter1
+            operator <- input$operator1
+            value <- input$filter_value1
+            filter_var <- input$filter1
 
-        if (operator == "<") {
-            df <- df[get(filter_var) < value]
-        } else if (operator == "<=") {
-            df <- df[get(filter_var) <= value]
-        } else if (operator == ">") {
-            df <- df[get(filter_var) > value]
-        } else if (operator == ">=") {
-            df <- df[get(filter_var) >= value]
-        }
+            filter_expr <- parse(text = paste0(filter_var, operator, value))
+            df <- df[eval(filter_expr)]
         }
 
         # Apply second filter
         if (!is.na(input$filter_value2)) {
-        operator <- input$operator2
-        value <- input$filter_value2
-        filter_var <- input$filter2
+            operator <- input$operator2
+            value <- input$filter_value2
+            filter_var <- input$filter2
 
-        if (operator == "<") {
-            df <- df[get(filter_var) < value]
-        } else if (operator == "<=") {
-            df <- df[get(filter_var) <= value]
-        } else if (operator == ">") {
-            df <- df[get(filter_var) > value]
-        } else if (operator == ">=") {
-            df <- df[get(filter_var) >= value]
-        }
+            filter_expr <- parse(text = paste0(filter_var, operator, value))
+            df <- df[eval(filter_expr)]
         }
 
         df  # Return the filtered data
@@ -211,7 +196,7 @@ geocodeR <- function(){
         datatable(filtered_data_dynamic(), options = list(
         pageLength = 10,
         scrollX = TRUE,  # Enable horizontal scrolling
-        autoWidth = TRUE
+        autoWidth = FALSE
         ), selection = "multiple")  
     })
 
@@ -324,8 +309,8 @@ geocodeR <- function(){
 
     # Render geocode summary statistics
     output$matched_summary <- renderEcharts4r({
-        req(filtered_data())
-        df <- filtered_data()
+        req(filtered_data_dynamic())
+        df <- filtered_data_dynamic()
         per <- round(((sum(df$matched) / nrow(df)) * 100), 2)
         e_charts() |> 
         e_gauge(per, "PERCENT") |> 
@@ -333,8 +318,8 @@ geocodeR <- function(){
     })
 
     output$match_type_summary <- renderEcharts4r({
-        req(filtered_data())
-        df <- filtered_data()
+        req(filtered_data_dynamic())
+        df <- filtered_data_dynamic()
         match_type_counts <- df %>% count(match_type) %>% mutate(percentage = n / sum(n) * 100)
         
         match_type_counts %>%
