@@ -1,6 +1,7 @@
 normalise_fun <- function(vec, additional_regex_from = NULL, additional_regex_to = NULL, not_gnaf = FALSE){
     # Mountains
     v <- copy(vec)
+    v <- toupper(v)
     v <- gsub("MOUNTAINS*|MOUNT", "MT", v, perl = TRUE)
 
     # Saints

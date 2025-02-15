@@ -51,7 +51,7 @@ geocodeR <- function(){
         sidebar = sidebar(
         accordion(
             id = "sidebar_sections",
-            accordion_panel("\ud83d\udce9 Upload & Geocode",
+            accordion_panel("\u2b06\ufe0f Upload & Geocode",
             fileInput("file", "Upload CSV/XLSX File", accept = c(".csv", ".xlsx"),
             buttonLabel = "Browse...", placeholder = "No file selected"),
             uiOutput("var_select"),
@@ -74,10 +74,10 @@ geocodeR <- function(){
             selectInput("operator2", "Operator for Second Filter", choices = c("<", "<=", ">", ">=")),
             numericInput("filter_value2", "Value for Second Filter", value = NA, min = NA, max = NA)
             ),
-            accordion_panel("\u2b06\ufe0f Download",
+            accordion_panel("\ud83d\udce9 Download",
             downloadButton("download", "Download Filtered Data", class = "btn btn-success")
             ),
-            accordion_panel("Beyond Compare",
+            accordion_panel("📃Beyond Compare",
             uiOutput("compare_var1_select"),  # Dropdown to select first variable
             uiOutput("compare_var2_select"),  # Dropdown to select second variable
             actionButton("print_btn", "Print to Console", class = "btn btn-info")
@@ -149,7 +149,7 @@ geocodeR <- function(){
         req(data(), input$merge_var)
         merge_col <- input$merge_var
         withProgress(message = "Processing...", value = 0, {
-        df <- lookup_address(as.character(toupper(data()[[merge_col]])))
+        df <- lookup_address(as.character((data()[[merge_col]])))
         })
         df
     })
@@ -237,7 +237,8 @@ geocodeR <- function(){
             addTiles() %>%
             addCircleMarkers(
                 ~longitude, ~latitude, 
-                radius = 5, color = "blue", fillOpacity = 0.7
+                radius = 5, color = "blue", fillOpacity = 0.7,
+                label = ~paste(address_label)
             )
         })
         } else {
@@ -325,7 +326,8 @@ geocodeR <- function(){
     output$matched_summary <- renderEcharts4r({
         req(filtered_data())
         df <- filtered_data()
-        per <- round((nrow(df) / (sum(df$matched)) * 100), 2)
+        browser()
+        per <- round(((sum(df$matched) / nrow(df)) * 100), 2)
         e_charts() |> 
         e_gauge(per, "PERCENT") |> 
         e_title("Geocoded")
