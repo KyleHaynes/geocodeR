@@ -24,6 +24,16 @@ library(sf)
 library(dplyr)
 library(echarts4r)
 
+library(shiny)
+library(shinythemes)
+library(DT)
+library(data.table)
+library(readxl)
+library(leaflet)
+library(sf)
+library(dplyr)
+library(echarts4r)
+
 geocodeR <- function() {
   ui <- fillPage(
     tags$head(
@@ -113,17 +123,21 @@ geocodeR <- function() {
       }
     })
 
-    # Render uploaded data table
+    # Render uploaded data table with horizontal scroll
     output$uploaded_table <- renderDT({
       req(data())
-      datatable(data(), options = list(pageLength = 10, autoWidth = TRUE), selection = "none")  
+      datatable(data(), options = list(
+        pageLength = 10,
+        scrollX = TRUE,  # Enable horizontal scrolling
+        autoWidth = TRUE
+      ), selection = "none")  
     })
 
     # Render variable selection dropdown
     output$var_select <- renderUI({
       req(data())
       selectInput("merge_var", "Select Variable to Geocode", choices = names(data()),
-        selectize = TRUE, multiple = FALSE)
+        selectize = TRUE, multiple = FALSE, selected = "address")
     })
 
     # Geocode data
@@ -141,13 +155,17 @@ geocodeR <- function() {
       df
     })
 
-    # Render filtered data table
+    # Render filtered data table with horizontal scroll
     output$filtered_table <- renderDT({
       req(filtered_data())
-      datatable(filtered_data(), options = list(pageLength = 10, autoWidth = TRUE), selection = "multiple")  
+      datatable(filtered_data(), options = list(
+        pageLength = 10,
+        scrollX = TRUE,  # Enable horizontal scrolling
+        autoWidth = TRUE
+      ), selection = "multiple")  
     })
 
-    # Download filtered data
+    # Download filtered data (including subregion column)
     output$download <- downloadHandler(
       filename = function() {
         paste("filtered_data", Sys.Date(), ".csv", sep = "")
@@ -198,7 +216,7 @@ geocodeR <- function() {
       shapefile <- shapefile_data()
       selectInput("polygon_column", "Select Polygon Column", 
         choices = names(shapefile),  # Dynamically generate choices from shapefile columns
-        selected = "SUBREGION"  # Default selection (replace with your column name)
+        selected = "geometry"  # Default selection (replace with your column name)
       )
     })
 
@@ -208,7 +226,7 @@ geocodeR <- function() {
       shapefile <- shapefile_data()
       selectInput("subregion_column", "Select Subregion Column", 
         choices = names(shapefile),  # Dynamically generate choices from shapefile columns
-        selected = "SA3_NAME21"  # Default selection (replace with your column name)
+        selected = "SA2_NAME21"  # Default selection (replace with your column name)
       )
     })
 
@@ -221,14 +239,18 @@ geocodeR <- function() {
       subregion_column <- input$subregion_column  # Get selected subregion column
 
       # Convert geocoded data to SF object
-      geocoded_sf <- st_as_sf(geocoded_data, coords = c("longitude", "latitude"), crs = st_crs(shapefile))
+      geocoded_sf <- st_as_sf(geocoded_data, coords = c("longitude", "latitude"), crs = st_crs(shapefile), na.fail = FALSE)
 
       # Perform spatial join
       allocated <- st_join(geocoded_sf, shapefile, join = st_within)
 
-      # Drop geometry column before counting
+      # Add subregion column to the main dataset
       allocated_df <- allocated %>%
         st_drop_geometry()  # Convert to a regular data frame
+
+      # Update filtered_data with the subregion column
+      filtered_data_with_subregion <- filtered_data() %>%
+        left_join(allocated_df %>% select(matched, !!sym(subregion_column)), by = "matched")
 
       # Count allocations per subregion
       allocation_counts <- allocated_df %>%
@@ -237,6 +259,7 @@ geocodeR <- function() {
       # Merge counts with shapefile
       shapefile <- merge(shapefile, allocation_counts, by = subregion_column, all.x = TRUE)
       shapefile <- shapefile[which(shapefile$n > 0), ]
+
       # Create a color palette
       pal <- colorNumeric("viridis", shapefile$n, na.color = "transparent")
 
@@ -252,6 +275,9 @@ geocodeR <- function() {
             label = ~paste("Subregion:", data.table(shapefile)[[subregion_column]], "Count:", n)  # Use selected subregion column
           )
       })
+
+      # Update filtered_data with the subregion column
+      filtered_data(filtered_data_with_subregion)
     })
 
     # Render geocode summary statistics
@@ -288,6 +314,3 @@ geocodeR <- function() {
 
   shinyApp(ui, server)
 }
-
-# Run the app
-geocodeR()
