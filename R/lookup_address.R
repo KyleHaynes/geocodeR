@@ -1,3 +1,18 @@
+#' @name lookup_address
+
+#' @title UPDATE
+
+#' @description UPDATE.
+
+
+#' @return Returns Geocode Output
+
+
+#' @author Kyle Haynes, \email{kyle@@kylehaynes.com.au}.
+
+
+#' @import data.table
+#' @export
 lookup_address <- function(
     x = c("8 GYMPIE ROAD TIN CAN BAY 4580", "190 MUSGRAVE ROAD RED HILL 4000"),
     deduplicate = TRUE,

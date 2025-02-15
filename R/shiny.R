@@ -11,9 +11,10 @@
 #' 
 #' @param verbose Logical argument to be verbose.
 
-#' @import data.table, shiny, bslib, readxl, DT, writexl, diffobj, leaflet, echarts4r, dplyr, sf
+#' @import data.table, shiny, bslib, readxl, DT, writexl, diffobj, leaflet, echarts4r, dplyr, sf, bslib
 
 #' @export
+options(shiny.maxRequestSize=1E10) 
 library(shiny)
 library(shinythemes)
 library(DT)
@@ -23,7 +24,6 @@ library(leaflet)
 library(sf)
 library(dplyr)
 library(echarts4r)
-
 geocodeR <- function() {
   ui <- fillPage(
     tags$head(
@@ -139,7 +139,9 @@ geocodeR <- function() {
     merged_data <- eventReactive(input$merge_btn, {
       req(data(), input$merge_var)
       merge_col <- input$merge_var
-      df <- lookup_address(as.character(toupper(data()[[merge_col]])))
+      withProgress(message = "Processing...", value = 0, {
+        df <- lookup_address(as.character(toupper(data()[[merge_col]])))
+      })
       df
     })
 
@@ -271,62 +273,46 @@ geocodeR <- function() {
 
     # Combine allocation and map rendering into a single event
     observeEvent(input$allocate_btn, {
-    req(filtered_data(), shapefile_data(), input$polygon_column, input$subregion_column)
-    
-    geocoded_data <- filtered_data()  # Use the original dataset for spatial join
-    shapefile <- shapefile_data()
-    polygon_column <- input$polygon_column  # Get selected polygon column
-    subregion_column <- input$subregion_column  # Get selected subregion column
+      req(filtered_data(), shapefile_data(), input$polygon_column, input$subregion_column)
+      geocoded_data <- filtered_data()  # Use the original dataset for spatial join
+      shapefile <- shapefile_data()
+      polygon_column <- input$polygon_column  # Get selected polygon column
+      subregion_column <- input$subregion_column  # Get selected subregion column
 
-    # Convert geocoded data to SF object
-    geocoded_sf <- st_as_sf(geocoded_data, coords = c("longitude", "latitude"), crs = st_crs(shapefile), remove = FALSE,  na.fail = FALSE)
+      # Convert geocoded data to SF object
+      geocoded_sf <- st_as_sf(geocoded_data, coords = c("longitude", "latitude"), crs = st_crs(shapefile), na.fail = FALSE)
 
-    # Perform spatial join and remove duplicates
-    allocated <- st_join(geocoded_sf, shapefile, join = st_within)
-# browser()
-    # Drop geometry and keep necessary columns
-    allocated_df <- allocated %>%
-        st_drop_geometry() %>%
-        select(matched, !!sym(subregion_column))  # Keep only required columns
+      # Perform spatial join
+      allocated <- st_join(geocoded_sf, shapefile, join = st_within)
 
-    # Ensure no duplication during join
-    filtered_data_with_subregion <- geocoded_data %>%
-        left_join(allocated_df, by = "matched") %>%
-        distinct()  # Remove duplicates
+      # Add subregion column to the main dataset
+      allocated_df <- allocated %>%
+        st_drop_geometry()  # Convert to a regular data frame
 
-    filtered_data_with_subregion <- geocoded_data %>%
-    select(-one_of(subregion_column)) %>%  # Remove existing subregion column (if any)
-    left_join(allocated_df %>% select(matched, !!sym(subregion_column)), by = "matched")
+      # Count allocations per subregion
+      allocation_counts <- allocated_df %>%
+        count(!!sym(subregion_column))  # Use selected subregion column
 
-    # Update the reactive value with deduplicated data
-    filtered_data(filtered_data_with_subregion)
+      # Merge counts with shapefile
+      shapefile <- merge(shapefile, allocation_counts, by = subregion_column, all.x = TRUE)
+      shapefile <- shapefile[which(shapefile$n > 0), ]
 
-    # Aggregate counts per subregion
-    allocation_counts <- allocated_df %>%
-        count(!!sym(subregion_column), name = "n")
+      # Create a color palette
+      pal <- colorNumeric("viridis", shapefile$n, na.color = "transparent")
 
-    # Merge counts with shapefile
-    shapefile <- shapefile %>%
-        left_join(allocation_counts, by = subregion_column) %>%
-        filter(!is.na(n) & n > 0)  # Remove empty subregions
-
-    # Create a color palette
-    pal <- colorNumeric("viridis", shapefile$n, na.color = "transparent")
-
-    # Render subregion allocation map
-    output$subregion_map <- renderLeaflet({
+      # Render subregion allocation map
+      output$subregion_map <- renderLeaflet({
         leaflet(shapefile) %>%
-        addTiles() %>%
-        addPolygons(
+          addTiles() %>%
+          addPolygons(
             fillColor = ~pal(n),
             fillOpacity = 0.7,
             color = "black",
             weight = 1,
-            label = ~paste("Subregion:", data.table(shapefile)[[subregion_column]], "Count:", n)
-        )
+            label = ~paste("Subregion:", data.table(shapefile)[[subregion_column]], "Count:", n)  # Use selected subregion column
+          )
+      })
     })
-    })
-
 
     # Render geocode summary statistics
     output$matched_summary <- renderEcharts4r({

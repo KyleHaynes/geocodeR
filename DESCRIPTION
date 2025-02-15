@@ -20,6 +20,7 @@ Imports: data.table,
         writexl,
         diffobj,
         leaflet,
+        bslib,
         echarts4r
 License: use_mit_license()
 URL: https://github.com/KyleHaynes/au.address.match
