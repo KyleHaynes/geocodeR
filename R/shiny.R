@@ -11,7 +11,7 @@
 #' 
 #' @param verbose Logical argument to be verbose.
 
-#' @import data.table, shiny, bslib, readxl, DT, writexl, diffobj, leaflet, echarts4r, dplyr
+#' @import data.table, shiny, bslib, readxl, DT, writexl, diffobj, leaflet, echarts4r, dplyr, sf
 
 #' @export
 library(shiny)
@@ -148,10 +148,52 @@ geocodeR <- function() {
       filtered_data(merged_data())
     })
 
+    # Reactive expression for dynamically filtered data
+    filtered_data_dynamic <- reactive({
+      req(filtered_data())
+      df <- filtered_data()
+
+      # Apply first filter
+      if (!is.na(input$filter_value1)) {
+        operator <- input$operator1
+        value <- input$filter_value1
+        filter_var <- input$filter1
+
+        if (operator == "<") {
+          df <- df[get(filter_var) < value]
+        } else if (operator == "<=") {
+          df <- df[get(filter_var) <= value]
+        } else if (operator == ">") {
+          df <- df[get(filter_var) > value]
+        } else if (operator == ">=") {
+          df <- df[get(filter_var) >= value]
+        }
+      }
+
+      # Apply second filter
+      if (!is.na(input$filter_value2)) {
+        operator <- input$operator2
+        value <- input$filter_value2
+        filter_var <- input$filter2
+
+        if (operator == "<") {
+          df <- df[get(filter_var) < value]
+        } else if (operator == "<=") {
+          df <- df[get(filter_var) <= value]
+        } else if (operator == ">") {
+          df <- df[get(filter_var) > value]
+        } else if (operator == ">=") {
+          df <- df[get(filter_var) >= value]
+        }
+      }
+
+      df  # Return the filtered data
+    })
+
     # Render filtered data table with horizontal scroll
     output$filtered_table <- renderDT({
-      req(filtered_data())
-      datatable(filtered_data(), options = list(
+      req(filtered_data_dynamic())
+      datatable(filtered_data_dynamic(), options = list(
         pageLength = 10,
         scrollX = TRUE,  # Enable horizontal scrolling
         autoWidth = TRUE
@@ -164,15 +206,15 @@ geocodeR <- function() {
         paste("filtered_data", Sys.Date(), ".csv", sep = "")
       },
       content = function(file) {
-        write.csv(filtered_data(), file, row.names = FALSE)
+        write.csv(filtered_data_dynamic(), file, row.names = FALSE)
       }
     )
 
     # Render map with selected locations
     observe({
-      req(filtered_data())
+      req(filtered_data_dynamic())
       selected_rows <- input$filtered_table_rows_selected  
-      df <- filtered_data()
+      df <- filtered_data_dynamic()
       if (length(selected_rows) > 0) {
         selected_data <- df[selected_rows, ]
         output$map <- renderLeaflet({
@@ -247,6 +289,7 @@ geocodeR <- function() {
 
       # Update the reactive value
       filtered_data(filtered_data_with_subregion)
+
       # Count allocations per subregion
       allocation_counts <- allocated_df %>%
         count(!!sym(subregion_column))  # Use selected subregion column
@@ -302,8 +345,18 @@ geocodeR <- function() {
         e_y_axis(name = "Count") %>%
         e_legend(show = FALSE)  # Remove legend for cleaner look
     })
+
+    # Render filter dropdowns
+    output$filter1 <- renderUI({
+      req(filtered_data())
+      selectInput("filter1", "Select First Filter Variable", choices = names(filtered_data()))
+    })
+
+    output$filter2 <- renderUI({
+      req(filtered_data())
+      selectInput("filter2", "Select Second Filter Variable", choices = names(filtered_data()))
+    })
   }
 
   shinyApp(ui, server)
 }
-
