@@ -28,7 +28,6 @@ library(bslib)
 
 geocodeR <- function(){
 
-
     # Define UI
     ui <- fillPage(
     tags$head(
