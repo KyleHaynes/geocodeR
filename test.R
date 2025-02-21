@@ -11,11 +11,19 @@ d <- data.table(
                              "2023-02-01", "2001-03-23", "2023-02-01", "2001-03-23", "2023-02-01", "2001-03-23")),
   effective_to = as.Date(c("2024-02-01", "2002-06-02", "2024-02-01", "2001-03-23", 
                            "2024-02-01", "2002-06-02", "2024-02-01", "2001-03-23", "2024-02-01", "2005-06-02")),
-  SA2_CODE21 = c("312011001", "312011002", "312011003", "312011004", "312011005", 
-                 "312011006", "312011007", "312011008", "312011009", "312011010"),
+  SA2_CODE21 = c("305011105", "305011105", "305011105", "305011105", "305011105", 
+                 "305021115", "305011110", "301031014", "305011110", "306021145"),
   SA2_NAME21 = c("Townsville North", "Townsville South", "Cairns North", "Cairns South",
                  "Brisbane North", "Brisbane South", "Gold Coast North", "Gold Coast South",
                  "Sunshine Coast", "Toowoomba")
+)
+
+d <- data.table(
+    id = sample(1:1000, 40000, replace = T),
+    effective_from = x <- as.Date(sample(1:1000, 40000, replace = T)),
+    effective_to = x + 100,
+    SA2_CODE21 = z <- sample(sf$SA2_CODE21, 40000, replace = T),
+    SA2_NAME21 = sf$SA2_NAME21[match(z, sf$SA2_CODE21)]
 )
 
 # Sort by id and effective_from
@@ -51,6 +59,11 @@ result_sf <- result %>%
   left_join(sf, by = c("to_SA2_CODE21" = "SA2_CODE21")) %>%
   rename(to_geometry = geometry)
 
+library(shiny)
+library(leaflet)
+library(sf)
+library(dplyr)
+
 # Shiny App
 ui <- fluidPage(
   titlePanel("SA2 Region Movement Visualization"),
@@ -65,7 +78,7 @@ server <- function(input, output, session) {
       addPolygons(
         layerId = ~SA2_CODE21,
         fillColor = "blue",
-        fillOpacity = 0.6,
+        fillOpacity = 0,
         color = "black",
         weight = 1,
         label = ~SA2_NAME21,
@@ -77,18 +90,25 @@ server <- function(input, output, session) {
       )
   })
 
-  # Observe hover events
-  observeEvent(input$map_shape_mouseover, {
-    hovered_sa2 <- input$map_shape_mouseover$id
+  # Reactive value to store the currently clicked SA2 region
+  current_region <- reactiveVal(NULL)
 
-    # Filter movements involving the hovered SA2 region
-    movements <- result_sf %>%
-      filter(from_SA2_CODE21 == hovered_sa2 | to_SA2_CODE21 == hovered_sa2)
+  # Observe click events
+  observeEvent(input$map_shape_click, {
+    clicked_sa2 <- input$map_shape_click$id
+
+    # Clear previous lines if a new region is clicked
+    if (!is.null(current_region())) {
+      leafletProxy("map") %>%
+        clearGroup("movement_lines")
+    }
+# browser()
+    # Filter movements involving the clicked SA2 region
+    movements <- result_sf[from_SA2_CODE21 == clicked_sa2 | to_SA2_CODE21 == clicked_sa2]
 
     # Draw lines for movements
     if (nrow(movements) > 0) {
       leafletProxy("map") %>%
-        clearGroup("movement_lines") %>%
         addPolylines(
           data = movements,
           group = "movement_lines",
@@ -100,12 +120,9 @@ server <- function(input, output, session) {
           opacity = 1
         )
     }
-  })
 
-  # Clear lines when mouse leaves a region
-  observeEvent(input$map_shape_mouseout, {
-    leafletProxy("map") %>%
-      clearGroup("movement_lines")
+    # Update the currently clicked region
+    current_region(clicked_sa2)
   })
 }
 
