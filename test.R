@@ -7,13 +7,14 @@ if (FALSE) {
     library(dplyr)
     library(DT)
     library(bslib)
+    library(plotly)
     library(bsicons)
     library(shinyjs)
 
   # Load the sf object (SA2 regions)
   sf <- st_read("C:\\SA2_2021_AUST_SHP_GDA2020\\SA2_2021_AUST_GDA2020.shp")
   sf <- sf[sf$STE_NAME21 %plike% "Queen", ]  # Filter for Queensland
-
+  sf <- sf[!st_is_empty(sf),,drop=FALSE]
 #   # Simplify polygons
 #   sf <- st_simplify(sf, dTolerance = 6)  # Adjust the threshold as needed
 
@@ -22,10 +23,10 @@ if (FALSE) {
 
   # Sample data.table with SA2 assignments
   d <- data.table(
-    id = sample(1:1000, 40000, replace = TRUE),
-    effective_from = x <- as.Date(sample(1:1000, 40000, replace = TRUE)),
+    id = sample(1:4000, 1E6, replace = TRUE),
+    effective_from = x <- as.Date(sample(1:(365*30), 1E6, replace = TRUE)),
     effective_to = x + 100,
-    SA2_CODE21 = z <- sample(sf$SA2_CODE21, 40000, replace = TRUE),
+    SA2_CODE21 = z <- sample(sf$SA2_CODE21, 1E6, replace = TRUE),
     SA2_NAME21 = sf$SA2_NAME21[match(z, sf$SA2_CODE21)]
   )
 
@@ -60,18 +61,36 @@ if (FALSE) {
     left_join(sf, by = c("to_SA2_CODE21" = "SA2_CODE21")) %>%
     rename(to_geometry = geometry)
 
-  # Precompute centroids for "from" and "to" geometries
-  result_sf[, `:=`(
-    from_centroid = lapply(from_geometry, function(x) st_coordinates(st_centroid(st_geometry(x)))),
-    to_centroid = lapply(to_geometry, function(x) st_coordinates(st_centroid(st_geometry(x))))
+
+
+ x <- as.data.table(sf)
+ 
+  x[, `:=`(
+    from_centroid = lapply(geometry, function(x) st_coordinates(st_centroid(st_geometry(x))))
   )]
+ x[, to_centroid := from_centroid]
 
   # Ensure centroids are numeric matrices
-  result_sf[, `:=`(
-    from_centroid = lapply(from_centroid, as.numeric),
-    to_centroid = lapply(to_centroid, as.numeric)
-  )]
+
+
+    result_sf <- merge(result_sf, x[, .(SA2_NAME21, from_centroid)], by.x = "from_SA2_NAME21", by.y = "SA2_NAME21", all.x = T)
+    result_sf <- merge(result_sf, x[, .(SA2_NAME21, to_centroid)], by.x = "to_SA2_NAME21", by.y = "SA2_NAME21", all.x = T)
+    result_sf[, `:=`(
+        from_centroid = lapply(from_centroid, as.numeric),
+        to_centroid = lapply(to_centroid, as.numeric)
+    )]
+
+
 }
+
+###################################################################################################################
+###################################################################################################################
+###################################################################################################################
+###################################################################################################################
+###################################################################################################################
+###################################################################################################################
+###################################################################################################################
+
 
 
 # Shiny App
@@ -341,7 +360,7 @@ server <- function(input, output, session) {
   
   # Base map
 # Base map
-#  browser(print("sds"))
+
 output$map <- renderLeaflet({
   leaflet(sf) %>%
     addTiles() %>%
@@ -371,7 +390,7 @@ output$map <- renderLeaflet({
   observeEvent(input$result_table_rows_selected, {
     selected_rows <- input$result_table_rows_selected
     
-    # browser(print("sds"))
+
     # Clear previous layers
     leafletProxy("map") %>%
       clearGroup("selected_polygons") %>%
@@ -514,6 +533,7 @@ output$map <- renderLeaflet({
     clicked_sa2 <- input$map_shape_click$id
     
     if (!is.null(clicked_sa2)) {
+        # browser()
       # Clear previous layers
       leafletProxy("map") %>%
         clearGroup("selected_polygons") %>%
@@ -593,6 +613,7 @@ output$map <- renderLeaflet({
             id = 1:length(movements_with_coords),
             geometry = st_sfc(
               lapply(movements_with_coords, function(move) {
+
                 st_linestring(matrix(c(
                   move$from[1], move$from[2],
                   move$to[1], move$to[2]
