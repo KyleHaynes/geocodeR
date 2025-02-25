@@ -1,15 +1,22 @@
-library(shiny)
-library(leaflet)
-library(data.table)
-library(sf)
-library(dplyr)
-library(DT)
-library(bslib)
-
 if (FALSE) {
+
+    library(shiny)
+    library(leaflet)
+    library(data.table)
+    library(sf)
+    library(dplyr)
+    library(DT)
+    library(bslib)
+
   # Load the sf object (SA2 regions)
   sf <- st_read("C:\\SA2_2021_AUST_SHP_GDA2020\\SA2_2021_AUST_GDA2020.shp")
   sf <- sf[sf$STE_NAME21 %plike% "Queen", ]  # Filter for Queensland
+
+#   # Simplify polygons
+#   sf <- st_simplify(sf, dTolerance = 6)  # Adjust the threshold as needed
+
+#   # Extract polygon geometries
+#   sf <- st_collection_extract(sf, "POLYGON")
 
   # Sample data.table with SA2 assignments
   d <- data.table(
@@ -66,10 +73,21 @@ if (FALSE) {
 ui <- page_sidebar(
   title = "SA2 Region Movement Visualization",
   sidebar = sidebar(
-    width = 300,
-    DTOutput("result_table")  # DT datatable with filters
+    width = 300
   ),
-  leafletOutput("map", height = "800px")  # Leaflet map
+  mainPanel(
+    div(style = "width: 100%;",
+        accordion(
+            id = "main_sections",
+            accordion_panel("Imported Data Preview", width = "100%",
+                div(DTOutput("result_table"))
+            ),
+            accordion_panel("Selected Locations Map", width = "100%",
+                div(leafletOutput("map", height = "800px"))
+            )
+        )
+    )
+  )
 )
 
 server <- function(input, output, session) {
@@ -88,6 +106,7 @@ server <- function(input, output, session) {
 
   # Base map
   output$map <- renderLeaflet({
+    # browser("sds")
     leaflet(sf) %>%
       addTiles() %>%
       addPolygons(
@@ -96,7 +115,7 @@ server <- function(input, output, session) {
         fillOpacity = 0,
         color = "black",
         weight = 1,
-        label = ~SA2_NAME21,
+        # label = ~paste("Name:", SA2_NAME21, "<br>Code:", SA2_CODE21, "<br>People:", n()),
         highlightOptions = highlightOptions(
           color = "red",
           weight = 2,
@@ -107,9 +126,9 @@ server <- function(input, output, session) {
 
   # Observe row selection in the DT datatable
   observeEvent(input$result_table_rows_selected, {
-    selected_rows <- input$result_table_rows_selected
 
-    if (!is.null(selected_rows)) {
+    selected_rows <- input$result_table_rows_selected
+    if (!is.null(selected_rows) && length(selected_rows) > 0) {
       # Clear previous layers
       leafletProxy("map") %>%
         clearGroup("selected_polygons") %>%
@@ -119,39 +138,36 @@ server <- function(input, output, session) {
       selected_data <- result_sf[selected_rows, ]
 
       # Draw all selected polygons and lines
-      for (i in seq_len(nrow(selected_data))) {
-        # Draw the from and to polygons
-        leafletProxy("map") %>%
-          addPolygons(
-            data = selected_data$from_geometry[i],
-            group = "selected_polygons",
-            fillColor = "green",
-            fillOpacity = 0.5,
-            color = "black",
-            weight = 2
-          ) %>%
-          addPolygons(
-            data = selected_data$to_geometry[i],
-            group = "selected_polygons",
-            fillColor = "orange",
-            fillOpacity = 0.5,
-            color = "black",
-            weight = 2
-          )
-
-        # Draw a line between the from and to regions
-        leafletProxy("map") %>%
-          addPolylines(
-            data = st_linestring(matrix(c(
+      leafletProxy("map") %>%
+        addPolygons(
+          data = selected_data$from_geometry,
+          group = "selected_polygons",
+          fillColor = "green",
+          fillOpacity = 0.5,
+          color = "black",
+          weight = 2
+        ) %>%
+        addPolygons(
+          data = selected_data$to_geometry,
+          group = "selected_polygons",
+          fillColor = "orange",
+          fillOpacity = 0.5,
+          color = "black",
+          weight = 2
+        ) %>%
+        addPolylines(
+          data = st_sfc(lapply(seq_len(nrow(selected_data)), function(i) {
+            # browser()
+            st_linestring(matrix(c(
               selected_data$from_centroid[[i]],
               selected_data$to_centroid[[i]]
-            ), ncol = 2, byrow = TRUE)),
-            group = "movement_lines",
-            color = "red",
-            weight = 3,
-            opacity = 1
-          )
-      }
+            ), ncol = 2, byrow = TRUE))
+          })),
+          group = "movement_lines",
+          color = "grey",
+          weight = 3,
+          opacity = 1
+        )
     }
   })
 
@@ -166,43 +182,40 @@ server <- function(input, output, session) {
         clearGroup("movement_lines")
 
       # Filter movements involving the clicked SA2 region
-      movements <- result_sf[from_SA2_CODE21 == clicked_sa2 | to_SA2_CODE21 == clicked_sa2, ]
+      movements <- result_sf %>%
+        filter(from_SA2_CODE21 == clicked_sa2 | to_SA2_CODE21 == clicked_sa2)
 
       if (nrow(movements) > 0) {
         # Draw all connections involving the clicked region
-        for (i in seq_len(nrow(movements))) {
-          # Draw the from and to polygons
-          leafletProxy("map") %>%
-            addPolygons(
-              data = movements$from_geometry[i],
-              group = "selected_polygons",
-              fillColor = "green",
-              fillOpacity = 0.5,
-              color = "black",
-              weight = 2
-            ) %>%
-            addPolygons(
-              data = movements$to_geometry[i],
-              group = "selected_polygons",
-              fillColor = "orange",
-              fillOpacity = 0.5,
-              color = "black",
-              weight = 2
-            )
-
-          # Draw a line between the from and to regions
-          leafletProxy("map") %>%
-            addPolylines(
-              data = st_linestring(matrix(c(
+        leafletProxy("map") %>%
+          addPolygons(
+            data = movements$from_geometry,
+            group = "selected_polygons",
+            fillColor = "green",
+            fillOpacity = 0.5,
+            color = "black",
+            weight = 2
+          ) %>%
+          addPolygons(
+            data = movements$to_geometry,
+            group = "selected_polygons",
+            fillColor = "orange",
+            fillOpacity = 0.5,
+            color = "black",
+            weight = 2
+          ) %>%
+          addPolylines(
+            data = st_sfc(lapply(seq_len(nrow(movements)), function(i) {
+              st_linestring(matrix(c(
                 movements$from_centroid[[i]],
                 movements$to_centroid[[i]]
-              ), ncol = 2, byrow = TRUE)),
-              group = "movement_lines",
-              color = "red",
-              weight = 3,
-              opacity = 1
-            )
-        }
+              ), ncol = 2, byrow = TRUE))
+            })),
+            group = "movement_lines",
+            color = "grey",
+            weight = 3,
+            opacity = 1
+          )
       }
     }
   })
