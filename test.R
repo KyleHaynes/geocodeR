@@ -51,7 +51,7 @@ if (FALSE) {
     move_date = effective_from
   )]
 
-  result <- result[, .(count = .N), .(from_SA2_NAME21, to_SA2_NAME21)]
+  result <- result[, .(count = .N), .(from_SA2_NAME21, from_SA2_CODE21, to_SA2_CODE21, to_SA2_NAME21, move_date)]
 
   # Merge sf with result to get geometry for "from" and "to" regions
   result_sf <- result %>%
@@ -340,35 +340,38 @@ server <- function(input, output, session) {
   )
   
   # Base map
-  output$map <- renderLeaflet({
-    leaflet(sf) %>%
-      addTiles() %>%
-      addPolygons(
-        layerId = ~SA2_CODE21,
-        fillColor = "blue",
-        fillOpacity = 0.1,  # Light blue fill for better visibility
-        color = "black",
-        weight = 1,
-        label = ~paste("Name:", SA2_NAME21, "Code:", SA2_CODE21),
-        highlightOptions = highlightOptions(
-          color = "red",
-          weight = 2,
-          bringToFront = TRUE
-        )
-      ) %>%
-      addScaleBar() %>%
-      addLayersControl(
-        baseGroups = c("OpenStreetMap", "Satellite"),
-        options = layersControlOptions(collapsed = FALSE)
-      ) %>%
-      addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
-      hideGroup("Satellite")
+# Base map
+#  browser(print("sds"))
+output$map <- renderLeaflet({
+  leaflet(sf) %>%
+    addTiles() %>%
+    addPolygons(
+      layerId = ~SA2_CODE21,
+      fillColor = "blue",
+      fillOpacity = 0.1,  # Light blue fill for better visibility
+      color = "black",
+      weight = 1,
+      label = ~paste("Name:", SA2_NAME21, "Code:", SA2_CODE21),
+      highlightOptions = highlightOptions(
+        color = "red",
+        weight = 2,
+        bringToFront = TRUE
+      )
+    ) %>%
+    addScaleBar() %>%
+    addLayersControl(
+      baseGroups = c("OpenStreetMap", "Satellite"),
+      options = layersControlOptions(collapsed = FALSE)
+    ) %>%
+    addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+    hideGroup("Satellite")
   })
-  
+
   # Observe row selection in the DT datatable
   observeEvent(input$result_table_rows_selected, {
     selected_rows <- input$result_table_rows_selected
     
+    # browser(print("sds"))
     # Clear previous layers
     leafletProxy("map") %>%
       clearGroup("selected_polygons") %>%
