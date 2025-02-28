@@ -77,9 +77,10 @@ geocodeR <- function(){
             textInput("filter_value2", "Value for Second Filter", value = NA),
             actionButton("reset_btn", "Reset Filters", class = "btn btn-secondary")
             ),
-            accordion_panel("\ud83d\udce9 Download / View Filtered Data",
+            accordion_panel("\ud83d\udce9 Download / View",
             selectInput("download_format", "Select Download Format", choices = c("CSV", "XLS", "RDS")),
             downloadButton("download", "Download Filtered Data", class = "btn btn-success"),
+            br(),
             br(),
             actionButton("excel", "View in Excel", class = "btn btn-info")
             ),
@@ -87,7 +88,8 @@ geocodeR <- function(){
             uiOutput("compare_var1_select"),  # Dropdown to select first variable
             uiOutput("compare_var2_select"),  # Dropdown to select second variable
             actionButton("print_btn", "Beyond Compare Filtered Data", class = "btn btn-info")
-            )
+            ),
+            echarts4rOutput("matched_summary")
         )
         ),
         mainPanel(
@@ -100,18 +102,15 @@ geocodeR <- function(){
             accordion_panel("Geocoded Output", width = "100%",
                 div(DTOutput("filtered_table"))
             ),
-            accordion_panel("Selected Locations Map", width = "100%",
-                div(leafletOutput("map", height = "500px"))
-            ),
-            accordion_panel("Subregion Allocation Map", width = "100%",
-                div(leafletOutput("subregion_map", height = "500px"))
+            accordion_panel("Maps", width = "100%",
+                div(style = "display: flex; justify-content: space-between;",
+                    div(style = "width: 48%;", leafletOutput("map", height = "500px")),
+                    div(style = "width: 48%;", leafletOutput("subregion_map", height = "500px"))
+                )
             ),
             accordion_panel("Geocode Summary Statistics", width = "100%",
                 collapsed = TRUE,
-                div(style = "display: flex; justify-content: space-between;",
-                    div(style = "width: 48%;", echarts4rOutput("matched_summary")),
-                    div(style = "width: 48%;", echarts4rOutput("match_type_summary"))
-                )
+                echarts4rOutput("match_type_summary")
             )
             # accordion_panel("Summary Table", width = "100%",
             #     div(DTOutput("summary_table"))
@@ -369,7 +368,10 @@ geocodeR <- function(){
         df <- filtered_data_dynamic()
         per <- round(((sum(df$matched) / nrow(df)) * 100), 2)
         e_charts() |> 
-        e_gauge(per, "PERCENT") |> 
+        e_gauge(per, "PERCENT", 
+        title = list(fontSize = "10px"),
+        detail = list(fontSize = "12px")
+        ) |> 
         e_title("Geocoded")
     })
 
