@@ -334,7 +334,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render the DT datatable with filters
+  # Render the DT datatable with filters and colored weight column
   output$result_table <- renderDT({
     datatable(
       filtered_data(),
@@ -343,7 +343,16 @@ server <- function(input, output, session) {
       options = list(
         pageLength = 10,  # Show 10 rows per page
         autoWidth = TRUE,
-        scrollX = TRUE
+        scrollX = TRUE,
+        columnDefs = list(list(
+          targets = 3,  # Assuming the weight column is the 4th column (index 3)
+          render = JS(
+            "function(data, type, row, meta) {",
+            "  var color = 'rgb(' + (255 * (data - 1) / 9) + ', ' + (255 * (10 - data) / 9) + ', 0)';",
+            "  return '<span style=\"color:' + color + '\">' + data + '</span>';",
+            "}"
+          )
+        ))
       )
     )
   })
