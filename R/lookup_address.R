@@ -247,6 +247,11 @@ lookup_address <- function(
                 c("match_type"))
     setcolorder(x, c("input", "normalised_input", "matched", "match_type"))
 
+    x[!is.na(jaccard_2_grams), jaccard_2_grams := 1-jaccard_2_grams]
+    x[!is.na(jarowinkler), jarowinkler := 1-jarowinkler]
+    x[!is.na(sum), sum := (2-sum)/2]
+    x[!is.na(jaccard_1_grams), jaccard_1_grams := 1-jaccard_1_grams]
+    x[!is.na(short_jarowinkler), short_jarowinkler := 1-short_jarowinkler]
 
     return(x[])
 }

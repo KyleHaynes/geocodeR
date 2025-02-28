@@ -77,15 +77,16 @@ geocodeR <- function(){
             textInput("filter_value2", "Value for Second Filter", value = NA),
             actionButton("reset_btn", "Reset Filters", class = "btn btn-secondary")
             ),
-            accordion_panel("\ud83d\udce9 Download / View",
+            accordion_panel("\ud83d\udce9 Download / View Filtered Data",
             selectInput("download_format", "Select Download Format", choices = c("CSV", "XLS", "RDS")),
-            actionButton("excel", "View in Excel", class = "btn btn-info"),
-            downloadButton("download", "Download Filtered Data", class = "btn btn-success")
+            downloadButton("download", "Download Filtered Data", class = "btn btn-success"),
+            br(),
+            actionButton("excel", "View in Excel", class = "btn btn-info")
             ),
             accordion_panel("📃Beyond Compare",
             uiOutput("compare_var1_select"),  # Dropdown to select first variable
             uiOutput("compare_var2_select"),  # Dropdown to select second variable
-            actionButton("print_btn", "Beyond Compare", class = "btn btn-info")
+            actionButton("print_btn", "Beyond Compare Filtered Data", class = "btn btn-info")
             )
         )
         ),
@@ -417,29 +418,32 @@ geocodeR <- function(){
 
     # Observe "Print to Console" button click
     observeEvent(input$print_btn, {
-        req(filtered_data(), input$compare_var1, input$compare_var2)
-        df <- data.table(filtered_data())
+        req(filtered_data_dynamic(), input$compare_var1, input$compare_var2)
+        df <- data.table(filtered_data_dynamic())
         xx <- input$compare_var1
         yy <- input$compare_var2
-        selected_data <- df[, .SD, .SDcols = c(input$compare_var1, input$compare_var2)]
+        print(df[, .(rn = rownames(df), var = get(xx))])
+        # selected_data <- df[, .SD, .SDcols = c(input$compare_var1, input$compare_var2)]
         internal::beyond_compare(df[, .(rn = rownames(df), var = get(xx))], df[, .(rn = rownames(df), var = get(yy))])  # Print the selected data to the console
     })
 
     # Observe "Print to Console" button click
     observeEvent(input$excel, {
-        df <- data.table(filtered_data())
+        df <- data.table(filtered_data_dynamic())
+        print(df)
         dirp::view_excel(df, regex_pattern = "winkler|jaccard|^sum$|sum_short")
     })
 
 
-    
+
     # Observe "Print to Console" button click
     observeEvent(input$print_btn, {
-        req(filtered_data(), input$compare_var1, input$compare_var2)
-        df <- data.table(filtered_data())
+        # req(filtered_data(), input$compare_var1, input$compare_var2)
+        df <- data.table(filtered_data_dynamic())
         xx <- input$compare_var1
         yy <- input$compare_var2
-        selected_data <- df[, .SD, .SDcols = c(input$compare_var1, input$compare_var2)]
+        # selected_data <- df[, .SD, .SDcols = c(input$compare_var1, input$compare_var2)]
+        print(df[, .(rn = rownames(df), var = get(xx))])
         internal::beyond_compare(df[, .(rn = rownames(df), var = get(xx))], df[, .(rn = rownames(df), var = get(yy))])  # Print the selected data to the console
     })
 
