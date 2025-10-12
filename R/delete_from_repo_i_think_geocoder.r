@@ -1,3 +1,4 @@
+if(FALSE){
 library(shiny)
 library(shinythemes)
 library(readxl)
@@ -139,4 +140,5 @@ if(F){
     source("C:/Users/kzhayn@treasury.qld.gov.au/local/git/dirv/R/geocoder.r")
     source("C:/Users/kzhayn@treasury.qld.gov.au/local/git/code/code/202404_address_matching.R")
     shinyApp(ui, server)
+}
 }

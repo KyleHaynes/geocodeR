@@ -17,7 +17,8 @@ lookup_address <- function(
     x = c("8 GYMPIE ROAD TIN CAN BAY 4580", "190 MUSGRAVE ROAD RED HILL 4000"),
     deduplicate = TRUE,
     test = FALSE,
-    block_4 = TRUE
+    block_4 = FALSE,
+    add_vars = c("number_first", "number_last", "street_name", "street_type", "street_suffix", "locality_name", "postcode")
     # lookup_map = lookup_map
 ){
 
@@ -27,7 +28,7 @@ lookup_address <- function(
 
     # ---- Blocking: Address ----
     # First block on address string, this should hopefully weed out a lot.
-    block_1 <- merge(x, lookup_map[, .(address_detail_pid, address_label, address, street_name, notes, longitude, latitude)], by.x = "input", by.y = "address", all.x = FALSE)
+    block_1 <- merge(x, lookup_map$lookup_map[, .(address_detail_pid, address_label, address, street_name, notes, longitude, latitude)], by.x = "input", by.y = "address", all.x = FALSE)
     # As the threshold has been met, remove from x
     vec <- block_1$normalised_input
     x[normalised_input %chin% vec, matched := TRUE]
@@ -51,7 +52,7 @@ lookup_address <- function(
     # ---- Creates blocks ----
     x_sub <- blocking_fun(x_sub, "normalised_input", not_gnaf = TRUE)[]
 
-    b1 <- merge(x_sub[(!matched)], lookup_map[, .(address_detail_pid, address_label, address, short_address, street_name, notes, block_3, longitude, latitude)], by = "block_3", all.x = TRUE, allow.cartesian = TRUE)
+    b1 <- merge(x_sub[(!matched)], lookup_map$lookup_map[, .(address_detail_pid, address_label, address, short_address, street_name, notes, block_3, longitude, latitude)], by = "block_3", all.x = TRUE, allow.cartesian = TRUE)
     b1[, jaccard_2_grams := round(stringdist::stringdist(normalised_input, address, method = "jaccard", q = 2), 3)]
     b1[, jarowinkler := round(stringdist::stringdist(normalised_input, address, method = "jw"), 3)]
     b1[, sum := jarowinkler + jaccard_2_grams]
@@ -60,7 +61,7 @@ lookup_address <- function(
 
     # ---- Blocking: Hashes ----
     # Now block on address string, this should hopefully weed out a lot.
-    b <- merge(x_sub[(!matched) & !row.num %fin% b1[(matched)]$row.num], lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_1, longitude, latitude)], by = "block_1", all.x = TRUE, allow.cartesian = TRUE)
+    b <- merge(x_sub[(!matched) & !row.num %fin% b1[(matched)]$row.num], lookup_map$lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_1, longitude, latitude)], by = "block_1", all.x = TRUE, allow.cartesian = TRUE)
     # Identify those that didn't block on anything (these will be added back later).
     no_blocks <- b[is.na(address)]
     if(test){
@@ -69,7 +70,7 @@ lookup_address <- function(
     }
 
     # Second round of blocking
-    b2 <- merge(x_sub[row.num %fin% no_blocks$row.num], lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_2, longitude, latitude)], by = "block_2", all.x = TRUE, allow.cartesian=TRUE)
+    b2 <- merge(x_sub[row.num %fin% no_blocks$row.num], lookup_map$lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_2, longitude, latitude)], by = "block_2", all.x = TRUE, allow.cartesian=TRUE)
     b2 <- b2[!is.na(address), ]
 
 
@@ -88,8 +89,8 @@ lookup_address <- function(
         
         vec2x <- b[!row.num %fin% b[(tmp)]$row.num]$row.num
         x_sub[, block_4 := gsub("(QLD|QUEENSLAND|QUEENLANDS)$", "", block_4, perl = TRUE)]
-        lookup_map[, block_4 := gsub("(QLD|QUEENSLAND|QUEENLANDS)$", "", block_4, perl = TRUE)]
-        b0 <- merge(x_sub[row.num %fin% vec2x], lookup_map[, .(address_detail_pid, address_label, address, short_address, street_name, notes, block_4, longitude, latitude)], by = "block_4", all.x = TRUE, allow.cartesian = TRUE)
+        lookup_map$lookup_map[, block_4 := gsub("(QLD|QUEENSLAND|QUEENLANDS)$", "", block_4, perl = TRUE)]
+        b0 <- merge(x_sub[row.num %fin% vec2x], lookup_map$lookup_map[, .(address_detail_pid, address_label, address, short_address, street_name, notes, block_4, longitude, latitude)], by = "block_4", all.x = TRUE, allow.cartesian = TRUE)
         b0[, jaccard_2_grams := round(stringdist::stringdist(gsub("(^.*)(QUEENSLAND|QLD)( \\d+)$", "\\1\\3", normalised_input, perl = TRUE), address, method = "jaccard", q = 2), 3)]
         b0[, jarowinkler := round(stringdist::stringdist(gsub("(^.*)(QUEENSLAND|QLD)( \\d+)$", "\\1\\3", normalised_input, perl = TRUE), address, method = "jw"), 3)]
         b0[, sum := jarowinkler + jaccard_2_grams]
@@ -268,6 +269,11 @@ lookup_address <- function(
     x[!is.na(sum), sum := (2-sum)/2]
     x[!is.na(jaccard_1_grams), jaccard_1_grams := 1-jaccard_1_grams]
     x[!is.na(short_jarowinkler), short_jarowinkler := 1-short_jarowinkler]
+
+    if(!is.null(add_vars)){
+        add_vars <- names(lookup_map$gnaf_full)[names(lookup_map$gnaf_full) %in% add_vars]
+        x <- merge(x, lookup_map$gnaf_full[, c("address_detail_pid", add_vars), with = FALSE], by = "address_detail_pid", all.x = TRUE, allow.cartesian = TRUE)
+    } 
 
     return(x[])
 }

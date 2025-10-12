@@ -8,7 +8,9 @@ lookup_address(
   x = c("8 GYMPIE ROAD TIN CAN BAY 4580", "190 MUSGRAVE ROAD RED HILL 4000"),
   deduplicate = TRUE,
   test = FALSE,
-  block_4 = TRUE
+  block_4 = FALSE,
+  add_vars = c("number_first", "number_last", "street_name", "street_type",
+    "street_suffix", "locality_name", "postcode")
 )
 }
 \value{

@@ -1,6 +1,6 @@
 Package: geocodeR
 Title: Australian Address Matching and Geocoding with G-NAF
-Version: 0.1.0
+Version: 0.0.2
 Authors@R: 
     person(given = "Kyle",
            family = "Haynes",

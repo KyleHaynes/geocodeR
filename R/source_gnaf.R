@@ -275,7 +275,7 @@ source_gnaf <- function(
     # ---- Create blocks on G-NAF ----
     d <- blocking_fun(d, "address")
 
-    varss <- c("address_detail_pid", names(G)[!names(G) %in% names(d)])
+    varss <- unique(c("address_detail_pid", "street_name", names(G)[!names(G) %in% names(d)]))
     varss <- varss[varss %in% names(G)]
 
     return(
