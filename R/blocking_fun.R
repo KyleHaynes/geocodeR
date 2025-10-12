@@ -9,5 +9,6 @@ blocking_fun <- function(x, address = "input", not_gnaf = FALSE){
     } else {
         x[, block_3 := paste(gsub("([\\d ])\\d$", "\\1", block_1, perl = T), short_normalised_input)]
     }
+    x[, block_4 := st(gsub("[^A-Z]", "", get(..address), perl = TRUE))]
     return(x)
 }
