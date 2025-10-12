@@ -11,7 +11,7 @@ jw_split_words(vec_1, vec_2, regex = "[^A-Z]")
 
 \item{vec_2}{Character vector of second strings}
 
-\item{regex}{Regular expression for splitting (default "\link{^A-Z}")}
+\item{regex}{Regular expression for splitting}
 }
 \value{
 Numeric vector of Jaro-Winkler similarity scores

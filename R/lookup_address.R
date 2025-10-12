@@ -13,7 +13,7 @@
 #'
 #' @author Kyle Haynes, \email{kyle@@kylehaynes.com.au}.
 #'
-#' @import data.table, fastmatch
+#' @import data.table fastmatch
 #' @export
 lookup_address <- function(
     x = c("8 GYMPIE ROAD TIN CAN BAY 4580", "190 MUSGRAVE ROAD RED HILL 4000"),
