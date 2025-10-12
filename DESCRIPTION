@@ -1,32 +1,44 @@
 Package: geocodeR
-Title: Matching addresses to G-NAF.
-Version: 0.0.0.1
+Title: Australian Address Matching and Geocoding with G-NAF
+Version: 0.1.0
 Authors@R: 
     person(given = "Kyle",
            family = "Haynes",
            role = c("aut", "cre"),
-           email = "kyle@kylehaynes.com.au")
-Description: Matching addresses to G-NAF.
-Depends: R (>= 3.4.0)
-Imports: data.table,
-        stringi,
-        stringdist,
-        shiny,
-        shinythemes,
-        readxl,
-        DT,
-        dplyr,
-        sf,
-        writexl,
-        shinyjs,
-        diffobj,
-        leaflet,
-        bslib,
-        echarts4r
-License: use_mit_license()
+           email = "kyle@kylehaynes.com.au",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: Provides functions for matching and geocoding Australian addresses 
+    against the Geocoded National Address File (G-NAF). Includes fuzzy string 
+    matching, address normalization, and a Shiny application for interactive 
+    address geocoding and visualization.
+License: MIT + file LICENSE
 URL: https://github.com/KyleHaynes/au.address.match
 BugReports: https://github.com/KyleHaynes/au.address.match/issues
+Depends: R (>= 4.0.0)
+Imports: 
+    data.table (>= 1.14.0),
+    stringi,
+    stringdist,
+    shiny,
+    DT,
+    bslib,
+    readxl,
+    writexl,
+    dplyr,
+    sf,
+    leaflet,
+    echarts4r,
+    shinyjs,
+    fastmatch
+Suggests: 
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    spelling
+Config/testthat/edition: 3
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
+VignetteBuilder: knitr
+Language: en-US

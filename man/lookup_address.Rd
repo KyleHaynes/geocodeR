@@ -7,7 +7,8 @@
 lookup_address(
   x = c("8 GYMPIE ROAD TIN CAN BAY 4580", "190 MUSGRAVE ROAD RED HILL 4000"),
   deduplicate = TRUE,
-  test = FALSE
+  test = FALSE,
+  block_4 = TRUE
 )
 }
 \value{

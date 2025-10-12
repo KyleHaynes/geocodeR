@@ -28,7 +28,7 @@ source_gnaf <- function(
 
     message("# Sourcing G-NAF Data from PSV.")
     flush.console()
-    g <- fread(gnaf_core_path)
+    g <- fread(gnaf_core_path, colClasses = "character")
     message("# Sourced G-NAF Data From PSV.")
     flush.console()
 
@@ -43,6 +43,7 @@ source_gnaf <- function(
         stop("You have defined: ", paste(states, collapse = ", "), "These do not exist on the input.")
     }
 
+    G <- copy(g)
 
     set(g, i = NULL, j = c("date_created", "legal_parcel_id",
     "mb_code", "alias_principal", "principal_pid", "primary_secondary",
@@ -212,6 +213,7 @@ source_gnaf <- function(
         geocode_type = g$geocode_type[!lots_only],
         longitude = g$longitude[!lots_only],
         latitude = g$latitude[!lots_only],
+        street_name = g$street_name[!lots_only],
         keep.rownames = FALSE
     )
 
@@ -224,6 +226,7 @@ source_gnaf <- function(
             geocode_type = g$geocode_type,
             longitude = g$longitude,
             latitude = g$latitude,
+            street_name = g$street_name,
             notes = "GNAF Address Label",
             keep.rownames = FALSE
         ),
@@ -234,6 +237,7 @@ source_gnaf <- function(
             geocode_type = g$geocode_type[lots_only],
             longitude = g$longitude[lots_only],
             latitude = g$latitude[lots_only],
+            street_name = g$street_name[lots_only],
             notes = g$v2_notes[lots_only],
             keep.rownames = FALSE
         ),
@@ -244,6 +248,7 @@ source_gnaf <- function(
             geocode_type = g$geocode_type[ranged],
             longitude = g$longitude[ranged],
             latitude = g$latitude[ranged],
+            street_name = g$street_name[ranged],
             notes = g$v3_notes[ranged],
             keep.rownames = FALSE
         ),
@@ -254,6 +259,7 @@ source_gnaf <- function(
             geocode_type = g$geocode_type[ranged],
             longitude = g$longitude[ranged],
             latitude = g$latitude[ranged],
+            street_name = g$street_name[ranged],
             notes = g$v4_notes[ranged],
             keep.rownames = FALSE
         )
@@ -269,5 +275,12 @@ source_gnaf <- function(
     # ---- Create blocks on G-NAF ----
     d <- blocking_fun(d, "address")
 
-    return(d[])
+    varss <- c("address_detail_pid", names(G)[!names(G) %in% names(d)])
+    varss <- varss[varss %in% names(G)]
+
+    return(
+        list(
+            lookup_map  = d[],
+            gnaf_full   = G[, ..varss]
+        ))
 }
