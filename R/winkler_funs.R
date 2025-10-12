@@ -1,3 +1,12 @@
+#' Jaro-Winkler string similarity with word matching
+#'
+#' @param vec_1 Character vector of first strings
+#' @param vec_2 Character vector of second strings  
+#' @param type Character indicating type of matching (1, 2, or 3)
+#' @param allow_contraction Logical allowing word contractions
+#'
+#' @return Numeric vector of similarity scores
+#' @export
 jwink <- function(vec_1 = c("kyle john", "k yle j")
                 , vec_2 = c("kyle j", "kyle j")
                 , type = "1"
@@ -21,8 +30,14 @@ jwink <- function(vec_1 = c("kyle john", "k yle j")
     }
 }
 
-
-
+#' Jaro-Winkler similarity for word-split strings
+#'
+#' @param vec_1 Character vector of first strings
+#' @param vec_2 Character vector of second strings
+#' @param regex Regular expression for splitting (default "[^A-Z]")
+#'
+#' @return Numeric vector of Jaro-Winkler similarity scores
+#' @export
 jw_split_words <- function(vec_1, vec_2, regex = "[^A-Z]") {
 # browser()
     vec_1 <- stringi::stri_split_regex(

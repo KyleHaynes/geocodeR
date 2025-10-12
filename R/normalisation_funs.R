@@ -1,3 +1,12 @@
+#' Normalize Australian addresses for matching
+#'
+#' @param vec Character vector of addresses to normalize
+#' @param additional_regex_from Additional regex patterns to replace (not currently used)
+#' @param additional_regex_to Additional replacement patterns (not currently used)
+#' @param not_gnaf Logical indicating if input is not from G-NAF (default FALSE)
+#'
+#' @return Character vector of normalized addresses
+#' @export
 normalise_fun <- function(vec, additional_regex_from = NULL, additional_regex_to = NULL, not_gnaf = FALSE){
     # Mountains
     v <- copy(vec)
@@ -43,9 +52,12 @@ normalise_fun <- function(vec, additional_regex_from = NULL, additional_regex_to
     return(st(v))
 }
 
-
-# Simple function to standardise
-    # TODO - could test timings of \\s vs say " "
+#' Standardize whitespace in text
+#'
+#' @param x Character vector to standardize
+#'
+#' @return Character vector with standardized whitespace
+#' @export
 st <- function(x){
     x <- trimws(gsub("\\s+", " ", x, perl = TRUE))
 }

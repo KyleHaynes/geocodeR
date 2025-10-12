@@ -1,3 +1,11 @@
+#' Create blocking hashes for address matching
+#'
+#' @param x data.table containing address data
+#' @param address Character string specifying the address column name
+#' @param not_gnaf Logical indicating if data is not from G-NAF
+#'
+#' @return data.table with blocking columns added
+#' @export
 blocking_fun <- function(x, address = "input", not_gnaf = FALSE){
     x <- copy(x)
     # TODO: Ensure none of the hashing variables exist

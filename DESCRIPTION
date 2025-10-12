@@ -5,8 +5,7 @@ Authors@R:
     person(given = "Kyle",
            family = "Haynes",
            role = c("aut", "cre"),
-           email = "kyle@kylehaynes.com.au",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
+           email = "kyle@kylehaynes.com.au")
 Description: Provides functions for matching and geocoding Australian addresses 
     against the Geocoded National Address File (G-NAF). Includes fuzzy string 
     matching, address normalization, and a Shiny application for interactive 
@@ -29,7 +28,8 @@ Imports:
     leaflet,
     echarts4r,
     shinyjs,
-    fastmatch
+    fastmatch,
+    diffobj
 Suggests: 
     testthat (>= 3.0.0),
     knitr,
@@ -40,5 +40,4 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-VignetteBuilder: knitr
 Language: en-US
