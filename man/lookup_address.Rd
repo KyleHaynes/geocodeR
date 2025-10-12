@@ -2,7 +2,7 @@
 % Please edit documentation in R/lookup_address.R
 \name{lookup_address}
 \alias{lookup_address}
-\title{UPDATE}
+\title{Australian Address Matching Against G-NAF}
 \usage{
 lookup_address(
   x = c("8 GYMPIE ROAD TIN CAN BAY 4580", "190 MUSGRAVE ROAD RED HILL 4000"),
@@ -13,11 +13,23 @@ lookup_address(
     "street_suffix", "locality_name", "postcode")
 )
 }
+\arguments{
+\item{x}{Character vector of addresses to match}
+
+\item{deduplicate}{Logical indicating whether to remove duplicate matches}
+
+\item{test}{Logical indicating whether to enable test mode for debugging}
+
+\item{block_4}{Logical indicating whether to use additional blocking strategy}
+
+\item{add_vars}{Character vector of additional variables to include from G-NAF}
+}
 \value{
-Returns Geocode Output
+data.table containing match results with similarity scores and coordinates
 }
 \description{
-UPDATE.
+Performs fuzzy address matching against the prepared G-NAF dataset using multiple
+similarity metrics including Jaro-Winkler and Jaccard distances.
 }
 \author{
 Kyle Haynes, \email{kyle@kylehaynes.com.au}.

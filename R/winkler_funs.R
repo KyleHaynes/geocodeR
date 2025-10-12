@@ -33,7 +33,7 @@ jwink <- function(vec_1 = c("kyle john", "k yle j")
 #'
 #' @param vec_1 Character vector of first strings
 #' @param vec_2 Character vector of second strings
-#' @param regex Regular expression for splitting (default "[^A-Z]")
+#' @param regex Regular expression for splitting
 #'
 #' @return Numeric vector of Jaro-Winkler similarity scores
 #' @export

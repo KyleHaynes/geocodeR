@@ -1,2 +1,11 @@
 ^au\.address\.match\.Rproj$
 ^\.Rproj\.user$
+^tests$
+^\.github$
+^test\.R$
+^test_to_do\.R$
+^play_ground\.R$
+^README\.Rmd$
+^\.travis\.yml$
+^appveyor\.yml$
+^codecov\.yml$

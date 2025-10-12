@@ -2,16 +2,16 @@
 % Please edit documentation in R/shiny.R
 \name{geocodeR}
 \alias{geocodeR}
-\title{Input data}
-\arguments{
-\item{path}{Folder path of where the data will be output.}
-
-\item{vars_regex}{Regex pattern to match variable names to input.}
-
-\item{vars_vec}{A vector of variable names to input.}
-
-\item{verbose}{Logical argument to be verbose.}
+\title{Launch Interactive Geocoding Shiny Application}
+\usage{
+geocodeR()
+}
+\value{
+Launches a Shiny application in the browser
 }
 \description{
-Output data to *.RDS objects.
+Launches an interactive Shiny application for address geocoding, visualization,
+and analysis. The application provides tools for uploading address data,
+performing batch geocoding, visualizing results on interactive maps, and
+exporting geocoded data.
 }
