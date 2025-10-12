@@ -1,16 +1,18 @@
-#' @name lookup_address
-
-#' @title UPDATE
-
-#' @description UPDATE.
-
-
-#' @return Returns Geocode Output
-
-
+#' Australian Address Matching Against G-NAF
+#'
+#' @description Performs fuzzy address matching against the prepared G-NAF dataset using multiple 
+#' similarity metrics including Jaro-Winkler and Jaccard distances.
+#'
+#' @param x Character vector of addresses to match
+#' @param deduplicate Logical indicating whether to remove duplicate matches
+#' @param test Logical indicating whether to enable test mode for debugging
+#' @param block_4 Logical indicating whether to use additional blocking strategy
+#' @param add_vars Character vector of additional variables to include from G-NAF
+#'
+#' @return data.table containing match results with similarity scores and coordinates
+#'
 #' @author Kyle Haynes, \email{kyle@@kylehaynes.com.au}.
-
-
+#'
 #' @import data.table, fastmatch
 #' @export
 lookup_address <- function(

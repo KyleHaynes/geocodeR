@@ -1,32 +1,13 @@
-#' Input data
+#' Launch Interactive Geocoding Shiny Application
 #'
-#' @name geocodeR
-
-#' @description Output data to *.RDS objects.
-
-#' @param path Folder path of where the data will be output.
-#' 
-#' @param vars_regex Regex pattern to match variable names to input.
-#' 
-#' @param vars_vec A vector of variable names to input.
-#' 
-#' @param verbose Logical argument to be verbose.
-
-#' @import data.table, shiny, bslib, readxl, DT, writexl, diffobj, leaflet, echarts4r, dplyr, sf, bslib, shinyjs
-
+#' @description Launches an interactive Shiny application for address geocoding, visualization, 
+#' and analysis. The application provides tools for uploading address data, 
+#' performing batch geocoding, visualizing results on interactive maps, and 
+#' exporting geocoded data.
+#'
+#' @return Launches a Shiny application in the browser
+#'
 #' @export
-options(shiny.maxRequestSize=1E10)
-library(shiny)
-library(shinyjs)
-library(data.table)
-library(readxl)
-library(sf)
-library(leaflet)
-library(DT)
-library(echarts4r)
-library(dplyr)
-library(bslib)
-
 geocodeR <- function(){
 
     # Define UI

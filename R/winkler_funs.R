@@ -25,8 +25,7 @@ jwink <- function(vec_1 = c("kyle john", "k yle j")
     } else if(type == "2") {
         mapply(function(x , y) max(outer(x, y, funfun)), vec_1, vec_2)
     } else if(type == "3") {
-        mapply(function(x , y) any(stringr::str_detect(c(x,y), c(y, x))), vec_1, vec_2)
-        # str_detect(TallestPerson, President) mapply(function(x , y) browser(), vec_1, vec_2)
+        mapply(function(x , y) any(stringr::str_detect(c(x, y), c(y, x))), vec_1, vec_2)
     }
 }
 
