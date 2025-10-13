@@ -45,7 +45,8 @@ normalise_fun <- function(vec, additional_regex_from = NULL, additional_regex_to
 
 
     } else {
-        message("Not doing further normalisation (You should consider setting `not_gnaf = TRUE` this!)")
+        TRUE # Fix
+        # message("Not doing further normalisation (You should consider setting `not_gnaf = TRUE` this!)")
     }
 
 

@@ -26,22 +26,23 @@ lookup_address <- function(
 
     x <- data.table(input = x, row.num = 1:length(x))
     x[, matched := FALSE]
-    x[, normalised_input := normalise_fun(input, not_gnaf = TRUE)]
+    # Remove state references. This currently just handles QLD / QUEENSLAND.
+    x[, normalised_input := gsub("(QLD|QUEENSLAND) (\\d+)$", "\\2", input, perl = TRUE)]
+    x[, normalised_input := normalise_fun(normalised_input, not_gnaf = TRUE)]
 
     # ---- Blocking: Address ----
     # First block on address string, this should hopefully weed out a lot.
-    block_1 <- merge(x, lookup_map$lookup_map[, .(address_detail_pid, address_label, address, street_name, notes, longitude, latitude)], by.x = "input", by.y = "address", all.x = FALSE)
+    block_1 <- merge(x, lookup_map$lookup_map[, .(address_detail_pid, address_label, address, street_name)], by.x = "normalised_input", by.y = "address", all.x = FALSE)
     # As the threshold has been met, remove from x
-    vec <- block_1$normalised_input
-    x[normalised_input %chin% vec, matched := TRUE]
+    x[normalised_input %chin% block_1$normalised_input, matched := TRUE]
     block_1[, matched := TRUE]
 
     # ---- Create variant addresses ----
     tmp1 <- x[!(matched)][normalised_input %plike% "(\\d+\\w?)\\-(\\d\\w?)"]
     tmp2 <- copy(tmp1)
     # Include both sides of ranged address (1-3 Smith rd, 1 Smith rd, 3 Smith rd)
-    tmp1[, normalised_input := gsub("(\\d+\\w?)\\-(\\d\\w?)", "\\1", normalised_input)]
-    tmp2[, normalised_input := gsub("(\\d+\\w?)\\-(\\d\\w?)", "\\2", normalised_input)]
+    tmp1[, normalised_input := gsub("(\\d+\\w?)\\-(\\d+\\w?)", "\\1", normalised_input, perl = T)]
+    tmp2[, normalised_input := gsub("(\\d+\\w?)\\-(\\d+\\w?)", "\\2", normalised_input, perl = T)]
     x_sub <- rbind(x[!(matched)], tmp1, tmp2)
     # Now attempt to identify street name. 
     regex <-  "(\\w) \\b(VIEWS|CLS|STREET|CRT|CRES|CRESENT|EST|ACCESS|ALLEY|AVE|ARTERIAL|AVENUE|BEND|BOULEVARD|BRACE|BREAK|BROADWAY|BYPASS|CHASE|CIRCLE|CIRCUIT|CLOSE|CORNER|CORSO|COURT|COVE|CRESCENT|CREST|CROSS|CROSSING|DEVIATION|DRIVE|DRIVEWAY|EASEMENT|ELBOW|END|ENTRANCE|ESPLANADE|FREEWAY|GAP|GARDENS|GATE|GLADE|GREEN|GROVE|HAVEN|HEIGHTS|HIGHWAY|KEY|LANDING|LANE|LINK|LOOP|LYNNE|MALL|MEAD|MEWS|MOTORWAY|PARADE|PASS|PASSAGE|PATHWAY|PLACE|PLAZA|POCKET|POINT|PRECINCT|PROMENADE|RESERVE|REST|RETREAT|RISE|ROAD|ROUTE|ROW|SQUARE|STRAIT|S+T+REET|STRIP|TERRACE|TRACK|TRAIL|VALE|VISTA|WALK|WATERS|WAY|FIRELINE|ACCS|ALLY|ARTL|AV|BVD|BR|BRK|BDWY|BYPA|CH|CIR|CCT|CL|CNR|CSO|CT|CR|CRST|CRSS|CRSG|DE|DR|DVWY|ESMT|ELB|ENT|ESP|FWY|GDNS|GTE|GLDE|GRN|GR|HVN|HTS|HWY|LDG|LYNN|MTWY|PDE|PSGE|PWAY|PL|PLZA|PKT|PNT|PREC|PROM|RES|RTT|RD|RTE|SQ|STAI|ST|STRP|TCE|TRK|TRL|VSTA|WTRS|FLNE)\\b (\\b[A-Z ]*\\b[A-Z ]*\\b\\b[A-Z ]*\\b)"
@@ -54,16 +55,15 @@ lookup_address <- function(
     # ---- Creates blocks ----
     x_sub <- blocking_fun(x_sub, "normalised_input", not_gnaf = TRUE)[]
 
-    b1 <- merge(x_sub[(!matched)], lookup_map$lookup_map[, .(address_detail_pid, address_label, address, short_address, street_name, notes, block_3, longitude, latitude)], by = "block_3", all.x = TRUE, allow.cartesian = TRUE)
+    b1 <- merge(x_sub[(!matched)], lookup_map$lookup_map[, .(address_detail_pid, address_label, address, short_address, street_name, block_3)], by = "block_3", all.x = TRUE, allow.cartesian = TRUE)
     b1[, jaccard_2_grams := round(stringdist::stringdist(normalised_input, address, method = "jaccard", q = 2), 3)]
     b1[, jarowinkler := round(stringdist::stringdist(normalised_input, address, method = "jw"), 3)]
     b1[, sum := jarowinkler + jaccard_2_grams]
     b1[, matched := fifelse(sum <= .12, T, F)]
 
-
     # ---- Blocking: Hashes ----
     # Now block on address string, this should hopefully weed out a lot.
-    b <- merge(x_sub[(!matched) & !row.num %fin% b1[(matched)]$row.num], lookup_map$lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_1, longitude, latitude)], by = "block_1", all.x = TRUE, allow.cartesian = TRUE)
+    b <- merge(x_sub[(!matched) & !row.num %fin% b1[(matched)]$row.num], lookup_map$lookup_map[, .(address_detail_pid, address_label, address, short_address, block_1)], by = "block_1", all.x = TRUE, allow.cartesian = TRUE)
     # Identify those that didn't block on anything (these will be added back later).
     no_blocks <- b[is.na(address)]
     if(test){
@@ -72,9 +72,8 @@ lookup_address <- function(
     }
 
     # Second round of blocking
-    b2 <- merge(x_sub[row.num %fin% no_blocks$row.num], lookup_map$lookup_map[, .(address_detail_pid, address_label, address, short_address, notes, block_2, longitude, latitude)], by = "block_2", all.x = TRUE, allow.cartesian=TRUE)
+    b2 <- merge(x_sub[row.num %fin% no_blocks$row.num], lookup_map$lookup_map[, .(address_detail_pid, address_label, address, short_address, block_2)], by = "block_2", all.x = TRUE, allow.cartesian=TRUE)
     b2 <- b2[!is.na(address), ]
-
 
     # Remove non-blocks.
     b <- b[!is.na(address)]
@@ -92,7 +91,7 @@ lookup_address <- function(
         vec2x <- b[!row.num %fin% b[(tmp)]$row.num]$row.num
         x_sub[, block_4 := gsub("(QLD|QUEENSLAND|QUEENLANDS)$", "", block_4, perl = TRUE)]
         lookup_map$lookup_map[, block_4 := gsub("(QLD|QUEENSLAND|QUEENLANDS)$", "", block_4, perl = TRUE)]
-        b0 <- merge(x_sub[row.num %fin% vec2x], lookup_map$lookup_map[, .(address_detail_pid, address_label, address, short_address, street_name, notes, block_4, longitude, latitude)], by = "block_4", all.x = TRUE, allow.cartesian = TRUE)
+        b0 <- merge(x_sub[row.num %fin% vec2x], lookup_map$lookup_map[, .(address_detail_pid, address_label, address, short_address, street_name, block_4)], by = "block_4", all.x = TRUE, allow.cartesian = TRUE)
         b0[, jaccard_2_grams := round(stringdist::stringdist(gsub("(^.*)(QUEENSLAND|QLD)( \\d+)$", "\\1\\3", normalised_input, perl = TRUE), address, method = "jaccard", q = 2), 3)]
         b0[, jarowinkler := round(stringdist::stringdist(gsub("(^.*)(QUEENSLAND|QLD)( \\d+)$", "\\1\\3", normalised_input, perl = TRUE), address, method = "jw"), 3)]
         b0[, sum := jarowinkler + jaccard_2_grams]
@@ -175,8 +174,6 @@ lookup_address <- function(
 
     b[, jw_split := jw_split_words(normalised_input, address)]
 
-    # View_excel(b[(!string_match)][order(sum_short)])
-
     # If matched already, import short jaro as the jaro.
     b[(matched), `:=`(short_jarowinkler = jarowinkler)]
 
@@ -205,25 +202,14 @@ lookup_address <- function(
 
     # ---- Deduplicate ----
     b[is.na(short_jarowinkler), short_jarowinkler := jarowinkler]
-    # b <- b[order(match, sum_short)]
-    setorderv(b, c("matched", "sum_short"), c(-1, 1))
-    
-    # b[row.num %fin% b[duplicated(row.num)]$row.num, {.SD; browser()}, row.num]
-
-    if(deduplicate){
-        b <- b[!duplicated(row.num)]
-    }
-
-    # b[, row.num := NULL]
     b <- rbind(block_1, b1[(matched)], block_2, b, no_blocks, fill = TRUE)
+
+    setorderv(b, c("matched", "sum_short"), c(-1, 1))
     
     # Hrmmm I don't think this dedupe is required...?
     if(deduplicate) {
         tmp1 <- nrow(b)
         b <- b[!duplicated(row.num)]
-        # if(nrow(b) < tmp1){
-        #     message("kyle this dedupe is apparently required. This msg shouldn't exist in the FINAL version")
-        # }
     }
     b[, row.num := NULL]
 
@@ -240,8 +226,8 @@ lookup_address <- function(
     # Some final matches
     x[(!matched) & jaccard_2_grams == 0, matched := TRUE]
     x[(!matched) & sum_short <= .30, matched := TRUE]
-    x[matched %fin% NA, notes := "Did not block"]
-    x[matched %fin% NA, matched := FALSE]
+    # x[matched %fin% NA, notes := "Did not block"]
+    x[is.na(matched), matched := FALSE]
     
     # Remove some False positives
     # bc(x[
@@ -251,32 +237,53 @@ lookup_address <- function(
     #     short_address %fin% gsub("[^A-Z]", "", getOption("gnaf_list")$normalised_street_names_freq$normalise_fun)
     # ])
 
-    verbose <- TRUE
+    verbose <- FALSE
 
     x[l <<- (matched) & !is.na(address), tmp := paste(normalised_input, address)]
 
     for(i in 1:length(false_pos)){
-        # browser()
         x[l & grepl(names(false_pos)[i], tmp, perl = TRUE) & grepl((false_pos)[i], tmp, perl = TRUE), matched := FALSE]
         if(verbose) print(x[l & grepl(names(false_pos)[i], tmp, perl = TRUE) & grepl((false_pos)[i], tmp, perl = TRUE), .(normalised_input, address)])
     }
 
-    suppressWarnings(set(x, i = NULL, j = c("row.num", "block_1", "block_3", "block_2", "short_address", "jw_split", "string_match", "tmp"),  value = NULL))
-    setnames(x, c("notes"),
-                c("match_type"))
-    setcolorder(x, c("input", "normalised_input", "matched", "match_type"))
+    # Removing notes TODO: remove throughout
+    # setnames(x, c("notes"),
+    #             c("match_type"))
+    # x[, notes := NULL]
+    suppressWarnings(set(x, i = NULL, j = c("row.num", "block_1", "block_3", "block_2", "block_4", "short_address", "jw_split", "string_match", "tmp"),  value = NULL))
 
-    x[!is.na(jaccard_2_grams), jaccard_2_grams := 1-jaccard_2_grams]
-    x[!is.na(jarowinkler), jarowinkler := 1-jarowinkler]
-    x[!is.na(sum), sum := (2-sum)/2]
-    x[!is.na(jaccard_1_grams), jaccard_1_grams := 1-jaccard_1_grams]
-    x[!is.na(short_jarowinkler), short_jarowinkler := 1-short_jarowinkler]
+
+    x[, jaccard_2_grams := round(stringdist::stringdist(normalised_input, address, method = "jaccard", q = 2), 3)]
+    x[, jarowinkler := round(stringdist::stringdist(normalised_input, address, method = "jw"), 3)]
+    x[, sum := jarowinkler + jaccard_2_grams]
+    x[, jaccard_2_grams := round(stringdist::stringdist(normalised_input, address_label, method = "jaccard", q = 2), 3)]
+    x[, jarowinkler := round(stringdist::stringdist(normalised_input, address_label, method = "jw"), 3)]
+    x[, sum2 := jarowinkler + jaccard_2_grams]
+    x[sum <= sum2, `:=`(gnaf_best_address = address, score = sum)]
+    x[sum2 < sum, `:=`(gnaf_best_address = address_label, score = sum2)]
+    x[, score := score / 2]
+
+
+    setcolorder(x, c("input", "address_detail_pid", "normalised_input", "matched", "address_label", "address"))
+
+    # x[!is.na(jaccard_2_grams), jaccard_2_grams := 1-jaccard_2_grams]
+    # x[!is.na(jarowinkler), jarowinkler := 1-jarowinkler]
+    # x[!is.na(sum), sum := (2-sum)/2]
+    # x[!is.na(jaccard_1_grams), jaccard_1_grams := 1-jaccard_1_grams]
+    # x[!is.na(short_jarowinkler), short_jarowinkler := 1-short_jarowinkler]
+
+    suppressWarnings(set(x, i = NULL, j = c("street_name"),  value = NULL))
 
     if(!is.null(add_vars)){
         add_vars <- names(lookup_map$gnaf_full)[names(lookup_map$gnaf_full) %in% add_vars]
         x <- merge(x, lookup_map$gnaf_full[, c("address_detail_pid", add_vars), with = FALSE], by = "address_detail_pid", all.x = TRUE, allow.cartesian = TRUE)
     } 
 
+    suppressWarnings(set(x, i = NULL, j = c("short_normalised_input", "address_label", "address", "sum", "sum2", "jaccard_2_grams", "jarowinkler", "jaccard_1_grams", "short_jarowinkler"),  value = NULL))
+
+
     return(x[])
 }
 
+
+# lookup_address("110-120 MUSGRAVE ROAD PADDINGTON 4059")

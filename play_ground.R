@@ -4,6 +4,7 @@
 if(FALSE){
 # ---- SETUP ----
 require(data.table)
+require(fastmatch)
 
 options(max.print = 3000)
 source("./R/blocking_fun.R")
@@ -15,14 +16,20 @@ source("./R/winkler_funs.R")
 
 # devtools::document()
 
-# system.time({lookup_map <<- source_gnaf()})
+system.time({lookup_map <<- source_gnaf()})
 
 # lookup_address(vec)
-d = lookup_address(c("30 RUATOKA COURT NARANGBA 4504", "30 RUUATOKA COURT NARANGBA 4504"))
+# d = lookup_address(c("30 RUATOKA COURT NARANGBA 4504", "30 RUUATOKA COURT NARANGBA 4504"))
 d
+# lookup_address(toupper(c("U20 110 Musgrave Rd, Red Hill QLD 4059", "UNT 20 110 Musgrave Rd, Red Hill QLD 4059", "20/110 Musgrave Rd, paddington QLD 4059")))
+
+xxx <- paste0(1:1E5, " Musgrave Rd, Red Hill QLD 4059")
+system.time({
+    x = lookup_address(xxx)
+})
 
 # lookup_map <- source_gnaf()
-x = lookup_address(d$a %sample% 10000)
+x = lookup_address(gnaf$a %sample% 10000)
 system.time({
     x = lookup_address(d$a)
 })
