@@ -32,6 +32,7 @@ lookup_address <- function(
 
     # ---- Blocking: Address ----
     # First block on address string, this should hopefully weed out a lot.
+    setkey(lookup_map$lookup_map, "address")
     block_1 <- merge(x, lookup_map$lookup_map[, .(address_detail_pid, address_label, address, street_name)], by.x = "normalised_input", by.y = "address", all.x = FALSE)
     # As the threshold has been met, remove from x
     x[normalised_input %chin% block_1$normalised_input, matched := TRUE]
@@ -87,7 +88,6 @@ lookup_address <- function(
         b[is.na(jarowinkler), jarowinkler := round(stringdist::stringdist(normalised_input, address, method = "jw"), 3)]
         b[, sum := jarowinkler + jaccard_2_grams]
         b[sum <= .17, tmp := TRUE]
-        
         vec2x <- b[!row.num %fin% b[(tmp)]$row.num]$row.num
         x_sub[, block_4 := gsub("(QLD|QUEENSLAND|QUEENLANDS)$", "", block_4, perl = TRUE)]
         lookup_map$lookup_map[, block_4 := gsub("(QLD|QUEENSLAND|QUEENLANDS)$", "", block_4, perl = TRUE)]
@@ -117,12 +117,14 @@ lookup_address <- function(
     b <- b[!row.num %fin% vec]
 
     # Within groups, identify weaker members.
-    b[!is.na(address_detail_pid), drop := {
-        jaccard_2_grams > min(jaccard_2_grams) + .07 &
-        jarowinkler > min(jarowinkler) + .07 &
-        sum > min(sum) + .13 &
-        short_address != short_normalised_input
-    }, by = "row.num"]
+    if(nrow(b[!is.na(address_detail_pid)]) > 0) {
+        b[!is.na(address_detail_pid), drop := {
+            jaccard_2_grams > min(jaccard_2_grams, na.rm = TRUE) + .07 &
+            jarowinkler > min(jarowinkler, na.rm = TRUE) + .07 &
+            sum > min(sum, na.rm = TRUE) + .13 &
+            short_address != short_normalised_input
+        }, by = "row.num"]
+    }
     # Drop them.
     b <- b[drop != TRUE]
     # Drop the drop.
@@ -241,9 +243,9 @@ lookup_address <- function(
 
     x[l <<- (matched) & !is.na(address), tmp := paste(normalised_input, address)]
 
-    for(i in 1:length(false_pos)){
-        x[l & grepl(names(false_pos)[i], tmp, perl = TRUE) & grepl((false_pos)[i], tmp, perl = TRUE), matched := FALSE]
-        if(verbose) print(x[l & grepl(names(false_pos)[i], tmp, perl = TRUE) & grepl((false_pos)[i], tmp, perl = TRUE), .(normalised_input, address)])
+    for(i in 1:length(geocodeR:::false_pos)){
+        x[l & grepl(names(geocodeR:::false_pos)[i], tmp, perl = TRUE) & grepl((geocodeR:::false_pos)[i], tmp, perl = TRUE), matched := FALSE]
+        if(verbose) print(x[l & grepl(names(geocodeR:::false_pos)[i], tmp, perl = TRUE) & grepl((geocodeR:::false_pos)[i], tmp, perl = TRUE), .(normalised_input, address)])
     }
 
     # Removing notes TODO: remove throughout
@@ -259,8 +261,8 @@ lookup_address <- function(
     x[, jaccard_2_grams := round(stringdist::stringdist(normalised_input, address_label, method = "jaccard", q = 2), 3)]
     x[, jarowinkler := round(stringdist::stringdist(normalised_input, address_label, method = "jw"), 3)]
     x[, sum2 := jarowinkler + jaccard_2_grams]
-    x[sum <= sum2, `:=`(gnaf_best_address = address, score = sum)]
-    x[sum2 < sum, `:=`(gnaf_best_address = address_label, score = sum2)]
+    x[sum <= sum2 | is.na(sum2), `:=`(gnaf_best_address = address, score = sum)]
+    x[sum2 < sum | is.na(sum), `:=`(gnaf_best_address = address_label, score = sum2)]
     x[, score := score / 2]
 
 
@@ -278,12 +280,6 @@ lookup_address <- function(
         add_vars <- names(lookup_map$gnaf_full)[names(lookup_map$gnaf_full) %in% add_vars]
         x <- merge(x, lookup_map$gnaf_full[, c("address_detail_pid", add_vars), with = FALSE], by = "address_detail_pid", all.x = TRUE, allow.cartesian = TRUE)
     } 
-
     suppressWarnings(set(x, i = NULL, j = c("short_normalised_input", "address_label", "address", "sum", "sum2", "jaccard_2_grams", "jarowinkler", "jaccard_1_grams", "short_jarowinkler"),  value = NULL))
-
-
     return(x[])
 }
-
-
-# lookup_address("110-120 MUSGRAVE ROAD PADDINGTON 4059")
