@@ -25,7 +25,7 @@ You can install the development version of geocodeR from GitHub:
 
 ```r
 # install.packages("remotes")
-remotes::install_github("KyleHaynes/au.address.match")
+remotes::install_github("KyleHaynes/geocodeR")
 ```
 
 ## Quick Start
