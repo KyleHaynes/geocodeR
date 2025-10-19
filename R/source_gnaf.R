@@ -36,10 +36,12 @@ source_gnaf <- function(
     setnames(g, tolower)
 
     # Subset to defined States
-    g <- g[state == states]
+    if (!is.null(g$state)){
+        g <- g[state == states]
+    }
 
     # If 0 rows, fail.
-    if(nrow(g) == 0){
+    if (nrow(g) == 0){
         stop("You have defined: ", paste(states, collapse = ", "), "These do not exist on the input.")
     }
 
